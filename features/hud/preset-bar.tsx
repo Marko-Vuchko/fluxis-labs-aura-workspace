@@ -116,6 +116,7 @@ export function PresetBar({
               "border-primary/25 bg-background/40 font-sans text-xs tracking-wide text-foreground",
               "hover:border-primary/50 hover:bg-primary/10",
               "focus-visible:ring-2 focus-visible:ring-primary/45",
+              "max-lg:min-h-11",
               selected &&
                 "border-primary/70 bg-primary/15 text-primary shadow-[0_0_18px_-6px_rgb(34_211_238_/_0.85)]",
             )}

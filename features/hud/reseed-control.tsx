@@ -49,6 +49,7 @@ export function ReseedControl({
               "text-muted-foreground/60 transition-colors",
               "hover:text-muted-foreground focus-visible:outline-none",
               "focus-visible:ring-1 focus-visible:ring-primary/40",
+              "max-lg:min-h-11 max-lg:px-3",
               "disabled:pointer-events-none disabled:opacity-40",
             )}
             aria-label={t("ui.reseedTooltip")}

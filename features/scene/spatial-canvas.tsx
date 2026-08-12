@@ -25,6 +25,7 @@ import {
 } from "./quality-manager";
 import type { SceneQuality } from "./scene-quality";
 import { SceneBackground } from "./scene-background";
+import { useOrbitControlsEnabled } from "@/features/hud/orbit-gate";
 
 declare global {
   interface Window {
@@ -59,11 +60,13 @@ function initialCameraPosition(): [number, number, number] {
 
 function CameraRig({ reduceMotion }: { reduceMotion: boolean }) {
   const [userStopped, setUserStopped] = useState(false);
-  const autoRotate = !reduceMotion && !userStopped;
+  const orbitEnabled = useOrbitControlsEnabled();
+  const autoRotate = !reduceMotion && !userStopped && orbitEnabled;
 
   return (
     <OrbitControls
       makeDefault
+      enabled={orbitEnabled}
       enablePan={false}
       enableDamping
       dampingFactor={0.06}

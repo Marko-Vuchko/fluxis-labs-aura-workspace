@@ -1,10 +1,11 @@
 "use client";
 
-import { AlertOctagon, AlertTriangle, Info } from "lucide-react";
+import { AlertOctagon, AlertTriangle, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import { HudPanel } from "@/features/hud/hud-chrome";
+import { orbitGuardPointerDown } from "@/features/hud/orbit-gate";
 import type {
   Insight,
   InsightSeverity,
@@ -42,6 +43,8 @@ export type AiCopilotProps = {
   /** Selected scrubber month (1..12). Shown for temporal context; insights come from Python. */
   selectedMonth: number;
   status: SimulationStatus;
+  /** Narrow layout: one insight at a time with pager through the rest. */
+  compact?: boolean;
   className?: string;
 };
 
@@ -140,6 +143,51 @@ function insightsAnimationKey(insights: readonly Insight[]): string {
     .join("|");
 }
 
+function InsightRow({
+  insight,
+  index,
+  runKey,
+  sensitivity,
+  reduceMotion,
+}: {
+  insight: Insight;
+  index: number;
+  runKey: string;
+  sensitivity: readonly SensitivityItem[];
+  reduceMotion: boolean | null;
+}) {
+  const { t } = useLanguage();
+  const severityLabel = t(severityLabelKey(insight.severity));
+  const leverLabel = leverLabelForInsight(insight, sensitivity, t);
+
+  return (
+    <motion.li
+      key={`${runKey}-${insight.code}-${index}`}
+      layout={!reduceMotion}
+      initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={reduceMotion ? undefined : { opacity: 0, y: -6 }}
+      transition={
+        reduceMotion
+          ? { duration: 0 }
+          : {
+              duration: 0.28,
+              delay: index * 0.07,
+              ease: "easeOut",
+            }
+      }
+      className="flex items-start gap-3"
+    >
+      <SeverityIcon severity={insight.severity} label={severityLabel} />
+      <InsightRenderer
+        insight={insight}
+        leverLabel={leverLabel}
+        className="min-w-0 flex-1"
+      />
+    </motion.li>
+  );
+}
+
 /**
  * Bottom-of-screen AI Strategic Copilot.
  * Translates the three engine-issued insight codes; never invents figures or conclusions.
@@ -149,11 +197,14 @@ export function AiCopilot({
   sensitivity = [],
   selectedMonth,
   status,
+  compact = false,
   className,
 }: AiCopilotProps) {
   const { t } = useLanguage();
   const reduceMotion = useReducedMotion();
   const stale = status === "stale";
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [pageKey, setPageKey] = useState("");
 
   const ranked =
     insights === null || insights.length === 0
@@ -162,83 +213,145 @@ export function AiCopilot({
 
   const runKey = insightsAnimationKey(ranked);
 
+  if (pageKey !== runKey) {
+    setPageKey(runKey);
+    setActiveIndex(0);
+  }
+
+  const safeIndex =
+    ranked.length === 0 ? 0 : Math.min(activeIndex, ranked.length - 1);
+  const activeInsight = ranked[safeIndex] ?? null;
+
   return (
-    <div data-tour="copilot" className={cn("w-full", className)}>
+    <div
+      data-tour="copilot"
+      className={cn("w-full", className)}
+      onPointerDown={orbitGuardPointerDown}
+    >
       <HudPanel
         label={t("ui.copilot")}
-        className={cn("w-full", stale && "ring-1 ring-status-warning/40")}
+        className={cn(
+          "w-full",
+          compact && "px-3 py-3",
+          stale && "ring-1 ring-status-warning/40",
+        )}
       >
-      <div className="mb-3 flex items-baseline justify-between gap-3">
-        <p className="text-[10px] tracking-[0.18em] text-primary/80 uppercase">
-          {t("ui.copilot")}
-        </p>
-        <p className="font-mono text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
-          {t("ui.month")} {selectedMonth}
-        </p>
-      </div>
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <p className="text-[10px] tracking-[0.18em] text-primary/80 uppercase">
+            {t("ui.copilot")}
+          </p>
+          <p className="font-mono text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
+            {t("ui.month")} {selectedMonth}
+          </p>
+        </div>
 
-      {stale ? (
-        <p
-          role="status"
-          className="mb-3 rounded-md border border-status-warning/30 bg-status-warning/10 px-3 py-2 text-xs leading-relaxed text-status-warning"
-        >
-          {t("ui.copilotStale")}
-        </p>
-      ) : null}
+        {stale ? (
+          <p
+            role="status"
+            className="mb-3 rounded-md border border-status-warning/30 bg-status-warning/10 px-3 py-2 text-xs leading-relaxed text-status-warning"
+          >
+            {t("ui.copilotStale")}
+          </p>
+        ) : null}
 
-      {ranked.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("ui.copilotEmpty")}</p>
-      ) : (
-        <ul className="space-y-3" aria-live="polite">
-          <AnimatePresence mode="popLayout" initial={false}>
-            {ranked.map((insight, index) => {
-              const severityLabel = t(severityLabelKey(insight.severity));
-              const leverLabel = leverLabelForInsight(
-                insight,
-                sensitivity,
-                t,
-              );
-
-              return (
-                <motion.li
-                  key={`${runKey}-${insight.code}-${index}`}
-                  layout={!reduceMotion}
-                  initial={
-                    reduceMotion ? false : { opacity: 0, y: 10 }
-                  }
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={
-                    reduceMotion
-                      ? undefined
-                      : { opacity: 0, y: -6 }
-                  }
+        {ranked.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{t("ui.copilotEmpty")}</p>
+        ) : compact ? (
+          <div className="space-y-3">
+            <AnimatePresence mode="wait" initial={false}>
+              {activeInsight ? (
+                <motion.div
+                  key={`${runKey}-${activeInsight.code}-${safeIndex}`}
+                  initial={reduceMotion ? false : { opacity: 0, x: 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={reduceMotion ? undefined : { opacity: 0, x: -12 }}
                   transition={
                     reduceMotion
                       ? { duration: 0 }
-                      : {
-                          duration: 0.28,
-                          delay: index * 0.07,
-                          ease: "easeOut",
-                        }
+                      : { duration: 0.22, ease: "easeOut" }
                   }
                   className="flex items-start gap-3"
+                  aria-live="polite"
                 >
                   <SeverityIcon
-                    severity={insight.severity}
-                    label={severityLabel}
+                    severity={activeInsight.severity}
+                    label={t(severityLabelKey(activeInsight.severity))}
                   />
                   <InsightRenderer
-                    insight={insight}
-                    leverLabel={leverLabel}
-                    className="min-w-0 flex-1"
+                    insight={activeInsight}
+                    leverLabel={leverLabelForInsight(
+                      activeInsight,
+                      sensitivity,
+                      t,
+                    )}
+                    className="min-w-0 flex-1 text-sm leading-relaxed"
                   />
-                </motion.li>
-              );
-            })}
-          </AnimatePresence>
-        </ul>
-      )}
-    </HudPanel>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+
+            {ranked.length > 1 ? (
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  aria-label={t("ui.previousInsight")}
+                  disabled={safeIndex === 0}
+                  onClick={() => {
+                    setActiveIndex((value) => Math.max(0, value - 1));
+                  }}
+                  className={cn(
+                    "inline-flex min-h-11 min-w-11 items-center justify-center rounded-md",
+                    "border border-primary/25 text-primary/90",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45",
+                    "disabled:pointer-events-none disabled:opacity-35",
+                  )}
+                >
+                  <ChevronLeft className="size-4" aria-hidden />
+                </button>
+                <p className="font-mono text-[10px] tracking-[0.12em] text-muted-foreground tabular-nums uppercase">
+                  {t("ui.insightPosition", {
+                    current: safeIndex + 1,
+                    total: ranked.length,
+                  })}
+                </p>
+                <button
+                  type="button"
+                  aria-label={t("ui.nextInsight")}
+                  disabled={safeIndex >= ranked.length - 1}
+                  onClick={() => {
+                    setActiveIndex((value) =>
+                      Math.min(ranked.length - 1, value + 1),
+                    );
+                  }}
+                  className={cn(
+                    "inline-flex min-h-11 min-w-11 items-center justify-center rounded-md",
+                    "border border-primary/25 text-primary/90",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45",
+                    "disabled:pointer-events-none disabled:opacity-35",
+                  )}
+                >
+                  <ChevronRight className="size-4" aria-hidden />
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <ul className="space-y-3" aria-live="polite">
+            <AnimatePresence mode="popLayout" initial={false}>
+              {ranked.map((insight, index) => (
+                <InsightRow
+                  key={`${runKey}-${insight.code}-${index}`}
+                  insight={insight}
+                  index={index}
+                  runKey={runKey}
+                  sensitivity={sensitivity}
+                  reduceMotion={reduceMotion}
+                />
+              ))}
+            </AnimatePresence>
+          </ul>
+        )}
+      </HudPanel>
     </div>
   );
 }

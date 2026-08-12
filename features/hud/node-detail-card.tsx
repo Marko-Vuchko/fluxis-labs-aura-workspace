@@ -1,6 +1,7 @@
 "use client";
 
 import { Html } from "@react-three/drei";
+import { useLayoutEffect, useRef, type RefObject } from "react";
 
 import { healthToColor } from "@/features/scene/health-color";
 import type { MonthSnapshot, NodeId, NodeState } from "@/features/simulation/types";
@@ -27,6 +28,44 @@ function nodeLabelKey(id: NodeId): DictionaryKey {
   return `ui.nodes.${id}`;
 }
 
+const EDGE_PAD_PX = 8;
+
+/**
+ * Keep the card inside the viewport on narrow screens without changing
+ * desktop placement when it already fits.
+ */
+function useClampToViewport(
+  ref: RefObject<HTMLElement | null>,
+  deps: readonly unknown[],
+): void {
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || typeof window === "undefined") {
+      return;
+    }
+
+    const clamp = () => {
+      el.style.transform = "";
+      const rect = el.getBoundingClientRect();
+      let shiftX = 0;
+      if (rect.left < EDGE_PAD_PX) {
+        shiftX = EDGE_PAD_PX - rect.left;
+      } else if (rect.right > window.innerWidth - EDGE_PAD_PX) {
+        shiftX = window.innerWidth - EDGE_PAD_PX - rect.right;
+      }
+      el.style.transform = shiftX === 0 ? "" : `translateX(${shiftX}px)`;
+    };
+
+    clamp();
+    window.addEventListener("resize", clamp);
+    return () => {
+      window.removeEventListener("resize", clamp);
+    };
+    // Viewport clamp re-runs when the anchored node or month figures change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- explicit clamp keys
+  }, deps);
+}
+
 /**
  * HTML detail card anchored to a locked spatial node via drei Html.
  * Stays open while the scrubber moves; figures follow the selected month.
@@ -41,8 +80,11 @@ export function NodeDetailCard({
   onClose,
 }: NodeDetailCardProps) {
   const { t } = useLanguage();
+  const articleRef = useRef<HTMLElement>(null);
   const health = state?.[0] ?? null;
   const healthColor = health !== null ? healthToColor(health) : "#94a3b8";
+
+  useClampToViewport(articleRef, [id, month?.index, health]);
 
   return (
     <Html
@@ -54,9 +96,10 @@ export function NodeDetailCard({
       occlude={false}
     >
       <article
+        ref={articleRef}
         role="dialog"
         aria-label={t(nodeLabelKey(id))}
-        className="w-[13.5rem] rounded-lg border border-primary/30 bg-[#070b14]/94 px-3 py-2.5 shadow-[0_0_28px_-14px_rgb(34_211_238_/_0.65)] backdrop-blur-md"
+        className="w-[min(13.5rem,calc(100vw-1rem))] rounded-lg border border-primary/30 bg-[#070b14]/94 px-3 py-2.5 shadow-[0_0_28px_-14px_rgb(34_211_238_/_0.65)] backdrop-blur-md"
         onPointerDown={(event) => {
           event.stopPropagation();
         }}
@@ -78,7 +121,7 @@ export function NodeDetailCard({
           <button
             type="button"
             aria-label={t("ui.close")}
-            className="rounded border border-primary/25 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded border border-primary/25 px-1.5 font-mono text-[10px] text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground lg:min-h-0 lg:min-w-0 lg:py-0.5"
             onClick={(event) => {
               event.stopPropagation();
               onClose();

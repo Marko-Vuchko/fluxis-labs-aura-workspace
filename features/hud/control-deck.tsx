@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 
 import { PresetBar } from "./preset-bar";
 import { ReseedControl } from "./reseed-control";
+import { orbitGuardPointerDown } from "./orbit-gate";
 import { playSliderTone as playSoundscapeSliderTone } from "@/lib/audio/soundscape";
 
 const SLIDER_CONFIG: {
@@ -196,6 +197,7 @@ function ParamSlider({
               "font-mono text-xs tabular-nums text-foreground",
               "border-primary/25 outline-none transition-colors",
               "focus-visible:border-primary/60 focus-visible:ring-2 focus-visible:ring-primary/25",
+              "max-lg:h-11 max-lg:w-[6.5rem] max-lg:text-sm",
               invalid && "border-destructive/70 ring-1 ring-destructive/30",
               disabled && "opacity-50",
             )}
@@ -205,40 +207,47 @@ function ParamSlider({
       <p id={`${inputId}-hint`} className="sr-only">
         {`${label}: ${range.min} to ${range.max}`}
       </p>
-      <Slider
-        value={[value]}
-        min={range.min}
-        max={range.max}
-        step={range.step}
-        disabled={disabled}
-        aria-labelledby={labelId}
-        aria-label={label}
-        onValueChange={(next) => {
-          const raw = Array.isArray(next) ? next[0] : next;
-          if (typeof raw !== "number" || !Number.isFinite(raw)) {
-            return;
-          }
-          const clamped = clampToRange(paramKey, raw);
-          onValueChange(clamped);
-          onTone(clamped);
-        }}
-        onValueCommitted={() => {
-          onCommit();
-        }}
-        className={cn(
-          "[&_[data-slot=slider-track]]:h-1.5 [&_[data-slot=slider-track]]:bg-primary/15",
-          "[&_[data-slot=slider-range]]:bg-primary",
-          "[&_[data-slot=slider-range]]:shadow-[0_0_12px_rgb(34_211_238_/_0.55)]",
-          "[&_[data-slot=slider-thumb]]:size-3.5 [&_[data-slot=slider-thumb]]:rounded-full",
-          "[&_[data-slot=slider-thumb]]:border [&_[data-slot=slider-thumb]]:border-primary/80",
-          "[&_[data-slot=slider-thumb]]:bg-primary",
-          "[&_[data-slot=slider-thumb]]:shadow-[0_0_14px_rgb(34_211_238_/_0.75)]",
-          "[&_[data-slot=slider-thumb]]:ring-0 [&_[data-slot=slider-thumb]]:hover:ring-2",
-          "[&_[data-slot=slider-thumb]]:hover:ring-primary/35",
-          "[&_[data-slot=slider-thumb]]:focus-visible:ring-2",
-          "[&_[data-slot=slider-thumb]]:focus-visible:ring-primary/45",
-        )}
-      />
+      <div
+        className="max-lg:min-h-11 max-lg:flex max-lg:items-center"
+        onPointerDown={orbitGuardPointerDown}
+      >
+        <Slider
+          value={[value]}
+          min={range.min}
+          max={range.max}
+          step={range.step}
+          disabled={disabled}
+          aria-labelledby={labelId}
+          aria-label={label}
+          onValueChange={(next) => {
+            const raw = Array.isArray(next) ? next[0] : next;
+            if (typeof raw !== "number" || !Number.isFinite(raw)) {
+              return;
+            }
+            const clamped = clampToRange(paramKey, raw);
+            onValueChange(clamped);
+            onTone(clamped);
+          }}
+          onValueCommitted={() => {
+            onCommit();
+          }}
+          className={cn(
+            "[&_[data-slot=slider-track]]:h-1.5 [&_[data-slot=slider-track]]:bg-primary/15",
+            "[&_[data-slot=slider-range]]:bg-primary",
+            "[&_[data-slot=slider-range]]:shadow-[0_0_12px_rgb(34_211_238_/_0.55)]",
+            "[&_[data-slot=slider-thumb]]:size-3.5 [&_[data-slot=slider-thumb]]:rounded-full",
+            "[&_[data-slot=slider-thumb]]:border [&_[data-slot=slider-thumb]]:border-primary/80",
+            "[&_[data-slot=slider-thumb]]:bg-primary",
+            "[&_[data-slot=slider-thumb]]:shadow-[0_0_14px_rgb(34_211_238_/_0.75)]",
+            "[&_[data-slot=slider-thumb]]:ring-0 [&_[data-slot=slider-thumb]]:hover:ring-2",
+            "[&_[data-slot=slider-thumb]]:hover:ring-primary/35",
+            "[&_[data-slot=slider-thumb]]:focus-visible:ring-2",
+            "[&_[data-slot=slider-thumb]]:focus-visible:ring-primary/45",
+            "max-lg:[&_[data-slot=slider-thumb]]:size-11",
+            "max-lg:[&_[data-slot=slider-track]]:h-2",
+          )}
+        />
+      </div>
     </div>
   );
 }

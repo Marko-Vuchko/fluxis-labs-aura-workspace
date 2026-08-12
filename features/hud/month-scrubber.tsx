@@ -5,11 +5,14 @@ import { useLanguage } from "@/lib/i18n/language-provider";
 import { cn } from "@/lib/utils";
 
 import { HudPanel } from "./hud-chrome";
+import { orbitGuardPointerDown } from "./orbit-gate";
 
 export type MonthScrubberProps = {
   selectedMonth: number;
   onMonthChange: (month: number) => void;
   className?: string;
+  /** Enlarge thumb / hit area for narrow touch layouts (44 px). */
+  enlargeTouch?: boolean;
 };
 
 /**
@@ -20,6 +23,7 @@ export function MonthScrubber({
   selectedMonth,
   onMonthChange,
   className,
+  enlargeTouch = false,
 }: MonthScrubberProps) {
   const { t } = useLanguage();
 
@@ -38,33 +42,40 @@ export function MonthScrubber({
         </p>
       </div>
 
-      <Slider
-        value={[selectedMonth]}
-        min={1}
-        max={12}
-        step={1}
-        aria-label={t("ui.month")}
-        onValueChange={(next) => {
-          const raw = Array.isArray(next) ? next[0] : next;
-          if (typeof raw !== "number" || !Number.isFinite(raw)) {
-            return;
-          }
-          onMonthChange(Math.round(raw));
-        }}
-        className={cn(
-          "[&_[data-slot=slider-track]]:h-1.5 [&_[data-slot=slider-track]]:bg-primary/15",
-          "[&_[data-slot=slider-range]]:bg-primary",
-          "[&_[data-slot=slider-range]]:shadow-[0_0_12px_rgb(34_211_238_/_0.55)]",
-          "[&_[data-slot=slider-thumb]]:size-3.5 [&_[data-slot=slider-thumb]]:rounded-full",
-          "[&_[data-slot=slider-thumb]]:border [&_[data-slot=slider-thumb]]:border-primary/80",
-          "[&_[data-slot=slider-thumb]]:bg-primary",
-          "[&_[data-slot=slider-thumb]]:shadow-[0_0_14px_rgb(34_211_238_/_0.75)]",
-          "[&_[data-slot=slider-thumb]]:ring-0 [&_[data-slot=slider-thumb]]:hover:ring-2",
-          "[&_[data-slot=slider-thumb]]:hover:ring-primary/35",
-          "[&_[data-slot=slider-thumb]]:focus-visible:ring-2",
-          "[&_[data-slot=slider-thumb]]:focus-visible:ring-primary/45",
-        )}
-      />
+      <div
+        className={cn(enlargeTouch && "min-h-11 flex items-center")}
+        onPointerDown={orbitGuardPointerDown}
+      >
+        <Slider
+          value={[selectedMonth]}
+          min={1}
+          max={12}
+          step={1}
+          aria-label={t("ui.month")}
+          onValueChange={(next) => {
+            const raw = Array.isArray(next) ? next[0] : next;
+            if (typeof raw !== "number" || !Number.isFinite(raw)) {
+              return;
+            }
+            onMonthChange(Math.round(raw));
+          }}
+          className={cn(
+            "[&_[data-slot=slider-track]]:h-1.5 [&_[data-slot=slider-track]]:bg-primary/15",
+            "[&_[data-slot=slider-range]]:bg-primary",
+            "[&_[data-slot=slider-range]]:shadow-[0_0_12px_rgb(34_211_238_/_0.55)]",
+            "[&_[data-slot=slider-thumb]]:size-3.5 [&_[data-slot=slider-thumb]]:rounded-full",
+            "[&_[data-slot=slider-thumb]]:border [&_[data-slot=slider-thumb]]:border-primary/80",
+            "[&_[data-slot=slider-thumb]]:bg-primary",
+            "[&_[data-slot=slider-thumb]]:shadow-[0_0_14px_rgb(34_211_238_/_0.75)]",
+            "[&_[data-slot=slider-thumb]]:ring-0 [&_[data-slot=slider-thumb]]:hover:ring-2",
+            "[&_[data-slot=slider-thumb]]:hover:ring-primary/35",
+            "[&_[data-slot=slider-thumb]]:focus-visible:ring-2",
+            "[&_[data-slot=slider-thumb]]:focus-visible:ring-primary/45",
+            enlargeTouch &&
+              "[&_[data-slot=slider-thumb]]:size-11 [&_[data-slot=slider-track]]:h-2",
+          )}
+        />
+      </div>
 
       <div className="mt-2 flex justify-between font-mono text-[10px] text-muted-foreground/70 tabular-nums">
         <span>1</span>
