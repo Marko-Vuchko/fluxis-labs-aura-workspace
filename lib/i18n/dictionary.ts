@@ -52,6 +52,12 @@ const en = {
     retry: "Retry",
     controlDeck: "Control Deck",
     copilot: "AI Strategic Copilot",
+    copilotStale:
+      "Connection lost. Copilot is showing the last known figures from the engine.",
+    copilotEmpty: "Waiting for engine insights.",
+    insightSeverityInfo: "Info",
+    insightSeverityWarning: "Warning",
+    insightSeverityCritical: "Critical",
     presets: {
       bootstrap: "Bootstrap",
       growth_push: "Growth Push",
@@ -88,49 +94,50 @@ const en = {
   },
   insights: {
     CAP_BREACH:
-      "Team capacity is breached by {overload_pct}% in month {month}. Demand already exceeds what the current headcount can serve.",
+      "Team capacity exceeded by {overload_pct} percent in month {month}. Demand already outruns what the current headcount can serve.",
     CAP_NEAR_LIMIT:
-      "Capacity utilization reaches {capacity_pct}% in month {month}. The team is close to saturation.",
+      "Capacity utilization reaches {capacity_used} percent in month {month}. The team is approaching saturation.",
     CAP_UNDERUSED:
-      "Capacity utilization sits at {capacity_pct}%. Headcount is underused relative to demand.",
+      "Average capacity utilization sits at {capacity_used} percent. Headcount is underused relative to demand.",
     CAP_HIRE_SUGGESTED:
-      "Hiring about {hires} people would relieve the bottleneck forming around month {month}.",
+      "Capacity utilization peaks at {capacity_used} percent around month {month}. Additional hiring would relieve the forming bottleneck.",
     CAP_CHURN_FROM_OVERLOAD:
-      "Overload of {overload_pct}% is elevating churn to {churn_pct}%. Service strain is leaking customers.",
+      "Overload is elevating churn to {churn_rate} percent by month {month}. Service strain is leaking customers.",
     PRICE_ABOVE_REFERENCE:
-      "Price at {price} sits above the reference of {reference}. Conversion pressure is building.",
+      "Price at {price} USD sits above the reference of {reference} USD. Conversion pressure is building.",
     PRICE_BELOW_REFERENCE:
-      "Price at {price} sits below the reference of {reference}. Volume is easier, margin is thinner.",
+      "Price at {price} USD sits below the reference of {reference} USD. Volume is easier while margin is thinner.",
     PRICE_CONVERSION_DROP:
-      "At {price}, conversion is about {conv} versus an expected {expected_conv} at the reference price point.",
+      "At {price} USD, conversion is about {conv} percent versus an expected {expected_conv} percent at the reference price point.",
     PRICE_MARGIN_THIN:
-      "Contribution margin is thin at {margin}. Small cost swings can erase profit.",
+      "Contribution margin is thin at {margin} percent. Small cost swings can erase profit.",
     PRICE_STRONGEST_LEVER:
-      "Price is the strongest lever in this run (sensitivity {coefficient}). Directional moves here move profit the most.",
+      "Price is currently the strongest lever on profit. Directional moves here shift outcomes more than other inputs.",
     MKT_SATURATION:
-      "Ad spend near {ad_spend} is hitting diminishing reach ({reach_pct}%). Extra spend buys less incremental demand.",
+      "Ad spend near {ad_spend} USD is hitting diminishing reach at {reach} percent. Extra spend buys less incremental demand.",
     MKT_EFFICIENT:
-      "Ad spend around {ad_spend} is still in an efficient range before heavy saturation.",
+      "Reach sits at {reach} percent, still inside an efficient advertising band before heavy saturation.",
     MKT_DEPENDENCY_HIGH:
-      "Advertising accounts for {dependency_pct}% of total cost. Revenue is tightly coupled to paid acquisition.",
+      "Advertising dependency stands at {ad_dependency} percent of the risk mix. Revenue is tightly coupled to paid acquisition.",
     MKT_UNDERSPEND:
-      "Ad spend at {ad_spend} leaves clear headroom before saturation. Demand is likely under-stimulated.",
+      "Ad spend at {ad_spend} USD is well below the half-saturation mark of {half_saturation} USD. Demand is likely under-stimulated.",
     MKT_CAC_ABOVE_LTV:
-      "CAC at {cac} exceeds LTV at {ltv}. Paid growth is destroying unit economics.",
+      "CAC at {cac} USD exceeds LTV at {ltv} USD. Paid growth is destroying unit economics.",
     CASH_RUNWAY_CRITICAL:
       "Cash runway is critical at {runway_months} months. Liquidity risk is immediate.",
     CASH_RUNWAY_WARNING:
       "Cash runway is short at {runway_months} months. Watch burn before the next planning cycle.",
     CASH_PROFITABLE:
-      "The firm is cash-flow positive in the selected month. Runway is reported as PROFITABLE.",
+      "The firm is cash-flow positive in the projection window. Runway is reported as PROFITABLE.",
     CASH_BURN_RISING:
-      "Monthly burn is rising toward {burn}. Reserve coverage is being consumed faster.",
+      "Monthly profit is deteriorating from {early_profit} USD early in the year toward {late_profit} USD later. Reserve coverage is being consumed faster.",
     CASH_LOSS_PROBABILITY:
-      "Probability of a monthly loss is {loss_probability}. Downside scenarios remain material.",
+      "Probability of a monthly loss is {loss_probability} percent. Downside scenarios remain material.",
     REC_TOP_LEVER:
-      "Primary recommendation: adjust {param} first. It ranks as the top sensitivity lever ({coefficient}).",
+      "{param} is currently the strongest lever on profit. Directional moves here shift outcomes more than other inputs.",
     REC_SECOND_LEVER:
-      "Secondary recommendation: review {param} next. It is the second sensitivity lever ({coefficient}).",
+      "{param} ranks as the second sensitivity lever on profit. It is the next place to probe after the primary lever.",
+    unknown: "Insight code {code} is not in the dictionary.",
   },
   tour: {
     skip: "Skip tour",
@@ -238,6 +245,12 @@ const sr = {
     retry: "Pokusaj ponovo",
     controlDeck: "Kontrolna tabla",
     copilot: "AI strateski kopilot",
+    copilotStale:
+      "Veza je prekinuta. Kopilot prikazuje poslednje poznate brojke iz engine-a.",
+    copilotEmpty: "Cekam uvide engine-a.",
+    insightSeverityInfo: "Info",
+    insightSeverityWarning: "Upozorenje",
+    insightSeverityCritical: "Kriticno",
     presets: {
       bootstrap: "Bootstrap",
       growth_push: "Growth Push",
@@ -274,49 +287,50 @@ const sr = {
   },
   insights: {
     CAP_BREACH:
-      "Kapacitet tima je probijen za {overload_pct}% u mesecu {month}. Traznja vec premasuje ono sto trenutni tim moze da opsluzi.",
+      "Kapacitet tima je premasen za {overload_pct} posto u mesecu {month}. Traznja vec nadmasuje ono sto trenutni tim moze da opsluzi.",
     CAP_NEAR_LIMIT:
-      "Iskoriscenje kapaciteta dize se na {capacity_pct}% u mesecu {month}. Tim je blizu saturacije.",
+      "Iskoriscenje kapaciteta dize se na {capacity_used} posto u mesecu {month}. Tim se priblizava saturaciji.",
     CAP_UNDERUSED:
-      "Iskoriscenje kapaciteta je na {capacity_pct}%. Tim je nedovoljno iskoriscen u odnosu na traznju.",
+      "Prosecno iskoriscenje kapaciteta je na {capacity_used} posto. Tim je nedovoljno iskoriscen u odnosu na traznju.",
     CAP_HIRE_SUGGESTED:
-      "Zaposljavanje oko {hires} osoba rasteretilo bi usko grlo koje se formira oko meseca {month}.",
+      "Iskoriscenje kapaciteta dize se na vrh od {capacity_used} posto oko meseca {month}. Dodatno zaposljavanje rasteretilo bi usko grlo koje se formira.",
     CAP_CHURN_FROM_OVERLOAD:
-      "Preopterecenje od {overload_pct}% dize odliv na {churn_pct}%. Pritisak na servis gubi klijente.",
+      "Preopterecenje dize odliv na {churn_rate} posto do meseca {month}. Pritisak na servis gubi klijente.",
     PRICE_ABOVE_REFERENCE:
-      "Cena {price} je iznad reference {reference}. Pritisak na konverziju raste.",
+      "Cena od {price} USD je iznad reference od {reference} USD. Pritisak na konverziju raste.",
     PRICE_BELOW_REFERENCE:
-      "Cena {price} je ispod reference {reference}. Volumen je laksi, marza tanja.",
+      "Cena od {price} USD je ispod reference od {reference} USD. Volumen je laksi, a marza tanja.",
     PRICE_CONVERSION_DROP:
-      "Pri ceni {price}, konverzija je oko {conv} naspram ocekivanih {expected_conv} na referentnoj ceni.",
+      "Pri ceni od {price} USD, konverzija je oko {conv} posto naspram ocekivanih {expected_conv} posto na referentnoj ceni.",
     PRICE_MARGIN_THIN:
-      "Kontribuciona marza je tanka na {margin}. Mali skokovi troska mogu obrisati profit.",
+      "Kontribuciona marza je tanka na {margin} posto. Mali skokovi troska mogu obrisati profit.",
     PRICE_STRONGEST_LEVER:
-      "Cena je najjaca poluga u ovom prolazu (osetljivost {coefficient}). Pomeraji ovde najvise pomeraju profit.",
+      "Cena je trenutno najjaca poluga na profit. Pomeraji ovde pomeraju ishod vise nego drugi ulazi.",
     MKT_SATURATION:
-      "Budzet za reklame oko {ad_spend} udara u opadajuci prinos ({reach_pct}%). Dodatni spend kupuje manje nove traznje.",
+      "Budzet za reklame oko {ad_spend} USD udara u opadajuci doseg od {reach} posto. Dodatni spend kupuje manje nove traznje.",
     MKT_EFFICIENT:
-      "Budzet za reklame oko {ad_spend} jos je u efikasnom opsegu pre jake saturacije.",
+      "Doseg je na {reach} posto i jos je u efikasnom reklamnom opsegu pre jake saturacije.",
     MKT_DEPENDENCY_HIGH:
-      "Reklame cine {dependency_pct}% ukupnog troska. Prihod je cvrsto vezan za placenu akviziciju.",
+      "Zavisnost od reklame stoji na {ad_dependency} posto rizika. Prihod je cvrsto vezan za placenu akviziciju.",
     MKT_UNDERSPEND:
-      "Budzet za reklame od {ad_spend} ostavlja prostor pre saturacije. Traznja je verovatno podstimulisana.",
+      "Budzet za reklame od {ad_spend} USD je znatno ispod polovine saturacije od {half_saturation} USD. Traznja je verovatno podstimulisana.",
     MKT_CAC_ABOVE_LTV:
-      "CAC od {cac} premasuje LTV od {ltv}. Placeni rast unistava jedinicnu ekonomiju.",
+      "CAC od {cac} USD premasuje LTV od {ltv} USD. Placeni rast unistava jedinicnu ekonomiju.",
     CASH_RUNWAY_CRITICAL:
       "Cash runway je kritican na {runway_months} meseci. Rizik likvidnosti je neposredan.",
     CASH_RUNWAY_WARNING:
       "Cash runway je kratak na {runway_months} meseci. Pratite burn pre sledeceg plana.",
     CASH_PROFITABLE:
-      "Firma je cash-flow pozitivna u izabranom mesecu. Runway se prikazuje kao PROFITABILNO.",
+      "Firma je cash-flow pozitivna u projekcionom prozoru. Runway se prikazuje kao PROFITABILNO.",
     CASH_BURN_RISING:
-      "Mesecni burn raste ka {burn}. Rezerva se trosi brze.",
+      "Mesecni profit slabi sa {early_profit} USD ranije u godini ka {late_profit} USD kasnije. Rezerva se trosi brze.",
     CASH_LOSS_PROBABILITY:
-      "Verovatnoca mesecnog gubitka je {loss_probability}. Negativni scenariji i dalje bitno uticu.",
+      "Verovatnoca mesecnog gubitka je {loss_probability} posto. Negativni scenariji i dalje bitno uticu.",
     REC_TOP_LEVER:
-      "Primarna preporuka: prvo podesite {param}. To je najjaca poluga osetljivosti ({coefficient}).",
+      "{param} je trenutno najjaca poluga na profit. Pomeraji ovde pomeraju ishod vise nego drugi ulazi.",
     REC_SECOND_LEVER:
-      "Sekundarna preporuka: zatim pregledajte {param}. To je druga poluga osetljivosti ({coefficient}).",
+      "{param} je druga poluga osetljivosti na profit. To je sledece mesto za proveru posle primarne poluge.",
+    unknown: "Insight kod {code} nije u recniku.",
   },
   tour: {
     skip: "Preskoci turu",

@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { BootScreen } from "@/features/boot/boot-screen";
+import { AiCopilot } from "@/features/copilot/ai-copilot";
 import { ComputeBadge } from "@/features/hud/compute-badge";
 import { ControlDeck } from "@/features/hud/control-deck";
 import { KpiPanel } from "@/features/hud/kpi-panel";
@@ -83,10 +84,16 @@ export default function AuraWorkspacePage() {
               <RiskGauge risk={month?.risk ?? null} stale={stale} />
             </div>
 
-            {/* Scene / Copilot placeholders occupy the middle band */}
+            {/* Scene placeholder - filled in a later phase */}
             <div className="min-h-24 flex-1" aria-hidden />
 
-            <div className="mx-auto w-full max-w-xl">
+            <div className="mx-auto w-full max-w-2xl space-y-4">
+              <AiCopilot
+                insights={simulation.result?.insights ?? null}
+                sensitivity={simulation.result?.sensitivity}
+                selectedMonth={simulation.selectedMonth}
+                status={simulation.status}
+              />
               <MonthScrubber
                 selectedMonth={simulation.selectedMonth}
                 onMonthChange={simulation.setSelectedMonth}
