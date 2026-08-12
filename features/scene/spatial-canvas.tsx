@@ -3,7 +3,7 @@
 import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { Bloom, EffectComposer } from "@react-three/postprocessing";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type {
   Histogram,
@@ -41,6 +41,8 @@ export type SpatialCanvasProps = {
   currency?: string;
   reduceMotion?: boolean;
   className?: string;
+  onContextLost?: () => void;
+  onContextRestored?: () => void;
 };
 
 const CAMERA_DISTANCE = 11;
@@ -187,10 +189,27 @@ export function SpatialCanvas({
   currency = "USD",
   reduceMotion = false,
   className,
+  onContextLost,
+  onContextRestored,
 }: SpatialCanvasProps) {
   const [quality, setQuality] = useState<SceneQuality>(DEFAULT_SCENE_QUALITY);
   const [lockedNodeId, setLockedNodeId] = useState<NodeId | null>(null);
   const cameraPosition = useMemo(() => initialCameraPosition(), []);
+  const contextCleanupRef = useRef<(() => void) | null>(null);
+  const onContextLostRef = useRef(onContextLost);
+  const onContextRestoredRef = useRef(onContextRestored);
+
+  useEffect(() => {
+    onContextLostRef.current = onContextLost;
+    onContextRestoredRef.current = onContextRestored;
+  }, [onContextLost, onContextRestored]);
+
+  useEffect(() => {
+    return () => {
+      contextCleanupRef.current?.();
+      contextCleanupRef.current = null;
+    };
+  }, []);
 
   const handleToggleLock = useCallback((id: NodeId) => {
     setLockedNodeId((current) => (current === id ? null : id));
@@ -242,6 +261,29 @@ export function SpatialCanvas({
         style={{ width: "100%", height: "100%", display: "block" }}
         onCreated={({ gl }) => {
           gl.setClearColor("#05070D", 1);
+          const canvas = gl.domElement;
+
+          contextCleanupRef.current?.();
+
+          const handleLost = (event: Event) => {
+            event.preventDefault();
+            onContextLostRef.current?.();
+          };
+          const handleRestored = () => {
+            onContextRestoredRef.current?.();
+          };
+
+          canvas.addEventListener("webglcontextlost", handleLost, false);
+          canvas.addEventListener("webglcontextrestored", handleRestored, false);
+
+          contextCleanupRef.current = () => {
+            canvas.removeEventListener("webglcontextlost", handleLost, false);
+            canvas.removeEventListener(
+              "webglcontextrestored",
+              handleRestored,
+              false,
+            );
+          };
         }}
         onPointerMissed={() => {
           handleClearLock();

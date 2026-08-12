@@ -98,7 +98,7 @@ export function PresetBar({
     <div
       className={cn("flex flex-wrap gap-2", className)}
       role="group"
-      aria-label={t("ui.controlDeck")}
+      aria-label={t("tour.step4Title")}
     >
       {PRESETS.map((preset) => {
         const selected = activeId === preset.id;
@@ -115,9 +115,12 @@ export function PresetBar({
             className={cn(
               "border-primary/25 bg-background/40 font-sans text-xs tracking-wide text-foreground",
               "hover:border-primary/50 hover:bg-primary/10",
+              "focus-visible:ring-2 focus-visible:ring-primary/45",
               selected &&
                 "border-primary/70 bg-primary/15 text-primary shadow-[0_0_18px_-6px_rgb(34_211_238_/_0.85)]",
             )}
+            aria-label={t(`ui.${preset.labelKey}`)}
+            aria-pressed={selected}
           >
             {t(`ui.${preset.labelKey}`)}
           </Button>

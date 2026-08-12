@@ -61,8 +61,7 @@ export type SoundToggleProps = {
 };
 
 /**
- * Speaker icon that only persists mute preference for now.
- * Synthetic Web Audio tones arrive in a later phase.
+ * Speaker icon that persists mute preference and drives the Web Audio soundscape.
  */
 export function SoundToggle({ className }: SoundToggleProps) {
   const { t } = useLanguage();
@@ -89,6 +88,7 @@ export function SoundToggle({ className }: SoundToggleProps) {
         "inline-flex size-8 items-center justify-center rounded-md border border-primary/25",
         "bg-[#070b14]/70 text-primary/90 backdrop-blur-sm transition-colors",
         "hover:bg-primary/10 hover:text-primary",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45",
         !enabled && "text-muted-foreground",
         className,
       )}

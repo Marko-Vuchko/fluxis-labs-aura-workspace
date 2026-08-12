@@ -163,14 +163,11 @@ export function AiCopilot({
   const runKey = insightsAnimationKey(ranked);
 
   return (
-    <HudPanel
-      label={t("ui.copilot")}
-      className={cn(
-        "w-full",
-        stale && "ring-1 ring-status-warning/40",
-        className,
-      )}
-    >
+    <div data-tour="copilot" className={cn("w-full", className)}>
+      <HudPanel
+        label={t("ui.copilot")}
+        className={cn("w-full", stale && "ring-1 ring-status-warning/40")}
+      >
       <div className="mb-3 flex items-baseline justify-between gap-3">
         <p className="text-[10px] tracking-[0.18em] text-primary/80 uppercase">
           {t("ui.copilot")}
@@ -242,5 +239,6 @@ export function AiCopilot({
         </ul>
       )}
     </HudPanel>
+    </div>
   );
 }

@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 
 import { PresetBar } from "./preset-bar";
 import { ReseedControl } from "./reseed-control";
+import { playSliderTone as playSoundscapeSliderTone } from "@/lib/audio/soundscape";
 
 const SLIDER_CONFIG: {
   key: SimulationParamKey;
@@ -51,13 +52,13 @@ export type ControlDeckProps = {
   className?: string;
 };
 
-/**
- * Placeholder for FR-8 synthetic slider tones. Sound arrives in a later phase.
- */
 function useDeckSound() {
   return {
-    playSliderTone: () => {
-      // Intentionally empty until the sound phase.
+    playSliderTone: (key: SimulationParamKey, value: number) => {
+      const range = PARAM_RANGES[key];
+      const span = range.max - range.min;
+      const normalized = span <= 0 ? 0 : (value - range.min) / span;
+      playSoundscapeSliderTone(normalized);
     },
   };
 }
@@ -94,7 +95,7 @@ type ParamSliderProps = {
   disabled?: boolean;
   onValueChange: (value: number) => void;
   onCommit: () => void;
-  onTone: () => void;
+  onTone: (value: number) => void;
 };
 
 function ParamSlider({
@@ -137,7 +138,7 @@ function ParamSlider({
     setDraft(null);
     if (next !== value) {
       onValueChange(next);
-      onTone();
+      onTone(next);
     }
     onCommit();
   };
@@ -219,7 +220,7 @@ function ParamSlider({
           }
           const clamped = clampToRange(paramKey, raw);
           onValueChange(clamped);
-          onTone();
+          onTone(clamped);
         }}
         onValueCommitted={() => {
           onCommit();
@@ -274,6 +275,7 @@ export function ControlDeck({
   return (
     <section
       aria-label={t("ui.controlDeck")}
+      data-tour="controlDeck"
       className={cn(
         "relative w-full max-w-sm overflow-hidden rounded-xl",
         "border border-primary/20 bg-[#070b14]/78 p-4 shadow-[0_0_40px_-24px_rgb(34_211_238_/_0.55)]",
@@ -301,7 +303,9 @@ export function ControlDeck({
             value={displayParams[slider.key]}
             currency={slider.currency}
             disabled={disabled || animatedParams !== null}
-            onTone={playSliderTone}
+            onTone={(next) => {
+              playSliderTone(slider.key, next);
+            }}
             onValueChange={(next) => {
               setParam(slider.key, next);
             }}
@@ -322,7 +326,10 @@ export function ControlDeck({
         {t("ui.perMonth")}
       </p>
 
-      <div className="mt-4 space-y-3 border-t border-primary/10 pt-4">
+      <div
+        className="mt-4 space-y-3 border-t border-primary/10 pt-4"
+        data-tour="presets"
+      >
         <PresetBar
           currentParams={displayParams}
           disabled={disabled || animatedParams !== null}

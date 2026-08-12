@@ -1,8 +1,8 @@
 let sharedAudioContext: AudioContext | null = null;
 
 /**
- * Create (once) and unlock AudioContext from a user gesture.
- * No tones are played here - sound arrives in a later phase.
+ * Create (once) and unlock AudioContext from a user gesture (ENTER AURA).
+ * Tones are synthesized later via lib/audio/soundscape.ts - never before unlock.
  */
 export function unlockAudioContext(): AudioContext {
   const AudioContextCtor =

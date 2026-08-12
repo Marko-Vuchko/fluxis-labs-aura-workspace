@@ -68,6 +68,14 @@ const en = {
       overload_crisis: "Overload Crisis",
       optimized: "Optimized",
     },
+    webglUnavailable: "WebGL is unavailable on this device",
+    webglContextLost: "Graphics context lost - recovering figures in 2D",
+    webglRetry: "Retry 3D",
+    sceneFallbackBadge: "Fallback telemetry",
+    sceneFallbackBody:
+      "All figures below are the last values returned by the Python engine. Nothing here is calculated in the browser.",
+    panelError: "This panel failed to render",
+    panelRetry: "Reinitialize",
     nodes: {
       marketing: "Marketing",
       sales: "Sales",
@@ -147,6 +155,7 @@ const en = {
     skip: "Skip tour",
     next: "Next",
     done: "Done",
+    progress: "Step {current} of {total}",
     step1Title: "Spatial scene",
     step1Body:
       "Seven glowing nodes show operational health. Position and color come from the Python simulation, not from the browser.",
@@ -265,6 +274,14 @@ const sr = {
       overload_crisis: "Overload Crisis",
       optimized: "Optimized",
     },
+    webglUnavailable: "WebGL nije dostupan na ovom uredjaju",
+    webglContextLost: "Graficki kontekst izgubljen - brojke ostaju u 2D prikazu",
+    webglRetry: "Pokusaj 3D ponovo",
+    sceneFallbackBadge: "Zamenska telemetrija",
+    sceneFallbackBody:
+      "Sve brojke ispod su poslednje vrednosti koje je vratio Python engine. Nista ovde se ne racuna u browseru.",
+    panelError: "Ovaj panel nije uspeo da se prikaze",
+    panelRetry: "Ponovo pokreni",
     nodes: {
       marketing: "Marketing",
       sales: "Prodaja",
@@ -344,6 +361,7 @@ const sr = {
     skip: "Preskoci turu",
     next: "Dalje",
     done: "Gotovo",
+    progress: "Korak {current} od {total}",
     step1Title: "Prostorna scena",
     step1Body:
       "Sedam svetlecih cvorova pokazuje operativno zdravlje. Polozaj i boja dolaze iz Python simulacije, ne iz browsera.",

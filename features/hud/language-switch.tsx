@@ -41,6 +41,7 @@ export function LanguageSwitch({ className }: LanguageSwitchProps) {
             }}
             className={cn(
               "min-w-9 rounded px-2 py-1 font-mono text-[11px] tracking-[0.12em] transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45",
               active
                 ? "bg-primary/20 text-primary"
                 : "text-muted-foreground hover:text-foreground",

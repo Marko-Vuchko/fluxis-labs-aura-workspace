@@ -14,6 +14,7 @@ import type {
 
 import { buildBootLogLines, computeBootProgress } from "./boot-log";
 import { unlockAudioContext } from "./unlock-audio";
+import { playBootSequence } from "@/lib/audio/soundscape";
 
 export type BootScreenProps = {
   status: SimulationStatus;
@@ -93,8 +94,9 @@ export function BootScreen({
   const handleEnter = () => {
     try {
       unlockAudioContext();
+      playBootSequence();
     } catch {
-      // Audio unlock is best-effort; entry must still proceed.
+      // Audio unlock / boot tones are best-effort; entry must still proceed.
     }
     onEnter();
   };
