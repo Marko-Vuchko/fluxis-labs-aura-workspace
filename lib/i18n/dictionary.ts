@@ -177,17 +177,48 @@ const en = {
   about: {
     title: "About Aura Workspace",
     subtitle: "A portfolio-grade spatial business simulator by Fluxis Labs.",
+    backHome: "Back to simulator",
     architectureHeading: "Architecture",
     architectureBody:
       "The browser never talks to the simulation host directly. Every request passes through Vercel route handlers that validate input and output, keep secrets server-side, and forward work to a Python FastAPI engine running Monte Carlo math with NumPy and Pandas.",
+    architectureCaption:
+      "Browser to Vercel (WAF, CSP, Zod) to Render FastAPI engine, then back with validated results.",
     monteCarloHeading: "Monte Carlo model",
     monteCarloBody:
-      "Each slider change runs 1000 iterations across 12 months. The engine returns percentile bands, risk components, node coordinates, an annual profit histogram, sensitivity ranks, and three insight codes. The client renders those codes from a bilingual dictionary and never invents replacement figures when the link drops.",
-    challengesHeading: "Build challenges",
-    challengesBody:
-      "Cold starts on free compute, strict CSP with nonces, same-origin API fencing, and a hard rule that business math stays off the client. The scene must stay interactive while results refresh, and stale data must remain visible rather than fabricated.",
+      "Think of Monte Carlo as asking the same business question a thousand times with slightly different luck each time. Instead of one optimistic spreadsheet, you get a cloud of plausible futures and a clear sense of how often the plan works.",
+    monteCarloStep1Title: "You set the knobs",
+    monteCarloStep1Body:
+      "Ad spend, price, team size, operating costs, and cash reserve describe how the SaaS firm plans to run for a year.",
+    monteCarloStep2Title: "The engine rolls the dice",
+    monteCarloStep2Body:
+      "Each of the 1000 runs varies lead cost, conversion, and churn within realistic ranges, then steps month by month for 12 months.",
+    monteCarloStep3Title: "Capacity is a hard limit",
+    monteCarloStep3Body:
+      "A fixed team can only serve so many clients. When demand overruns capacity, overload raises churn and squeezes profit.",
+    monteCarloStep4Title: "You see ranges, not a single guess",
+    monteCarloStep4Body:
+      "The UI shows percentile bands, risk components, node health, and plain-language insights. The browser never invents replacement numbers if the link drops.",
+    challengesHeading: "Technical challenges",
+    challengesIntro:
+      "The hard parts were not the 3D glow. They were trust, latency, and keeping every figure honest under failure.",
+    challenge1Title: "Cold starts on free compute",
+    challenge1Body:
+      "Render Free can sleep. The boot screen pings health, shows real wake telemetry, and only unlocks ENTER AURA after the engine answers.",
+    challenge2Title: "Secrets stay server-side",
+    challenge2Body:
+      "The browser never learns the Render URL or shared secret. Route handlers validate with Zod, attach the key, and return generic errors on failure.",
+    challenge3Title: "Math never runs in the browser",
+    challenge3Body:
+      "When the link is lost, the scene keeps the last Python result marked stale. No client-side fallback arithmetic is allowed.",
+    challenge4Title: "Strict CSP and same-origin fencing",
+    challenge4Body:
+      "Nonce-based CSP, BotID on simulate, and Origin checks keep the public demo from becoming an open proxy into the engine.",
+    linksHeading: "Links",
     githubCta: "View GitHub profile",
-    fluxisPlaceholder: "Fluxis Labs site (URL placeholder)",
+    contactHeading: "Work with Fluxis Labs",
+    contactBody:
+      "Aura Workspace is the lead portfolio exhibit for Fluxis Labs - spatial simulation, WebGL craft, and production-grade security in one demo.",
+    contactCta: "Visit Fluxis Labs",
   },
   test: {
     title: "Simulation harness (temporary)",
@@ -388,17 +419,48 @@ const sr = {
   about: {
     title: "O Aura Workspace",
     subtitle: "Portfolio prostorni poslovni simulator agencije Fluxis Labs.",
+    backHome: "Nazad na simulator",
     architectureHeading: "Arhitektura",
     architectureBody:
       "Browser nikada ne razgovara direktno sa hostom simulacije. Svaki zahtev prolazi kroz Vercel route handlere koji validiraju ulaz i izlaz, cuvaju tajne na serveru i prosledjuju posao Python FastAPI engine-u sa Monte Carlo matematikom preko NumPy i Pandas.",
+    architectureCaption:
+      "Browser ka Vercel-u (WAF, CSP, Zod), zatim ka Render FastAPI engine-u, pa nazad sa validiranim rezultatima.",
     monteCarloHeading: "Monte Carlo model",
     monteCarloBody:
-      "Svaka promena slajdera pokrece 1000 iteracija kroz 12 meseci. Engine vraca percentilne opsege, komponente rizika, koordinate cvorova, histogram godisnjeg profita, rangove osetljivosti i tri insight koda. Klijent te kodove renderuje iz dvojezicnog recnika i nikada ne izmislja zamenske brojke kada veza padne.",
-    challengesHeading: "Izazovi izgradnje",
-    challengesBody:
-      "Cold start na besplatnom compute-u, strogi CSP sa nonce vrednostima, same-origin API ograda i tvrdo pravilo da poslovna matematika ostaje van klijenta. Scena mora da ostane interaktivna dok rezultati stizu, a zastareli podaci moraju da ostanu vidljivi umesto da se izmisle.",
+      "Zamislite Monte Carlo kao isto poslovno pitanje postavljeno hiljadu puta, svaki put sa malo drugacijom srecom. Umesto jedne optimisticke tabele dobijate oblak uverljivih buducnosti i jasan osecaj koliko cesto plan stvarno radi.",
+    monteCarloStep1Title: "Vi podesavate poluge",
+    monteCarloStep1Body:
+      "Budzet za reklame, cena, velicina tima, operativni troskovi i gotovinska rezerva opisuju kako SaaS firma planira da radi godinu dana.",
+    monteCarloStep2Title: "Engine baca kockice",
+    monteCarloStep2Body:
+      "Svaki od 1000 prolaza varira cenu leada, konverziju i odliv u realistickim opsezima, zatim ide mesec po mesec kroz 12 meseci.",
+    monteCarloStep3Title: "Kapacitet je tvrda granica",
+    monteCarloStep3Body:
+      "Fiksni tim moze da opsluzi ogranicen broj klijenata. Kada traznja premasuje kapacitet, preopterecenje dize odliv i stiskuje profit.",
+    monteCarloStep4Title: "Vidite opsege, ne jednu pretpostavku",
+    monteCarloStep4Body:
+      "UI prikazuje percentilne opsege, komponente rizika, zdravlje cvorova i uvide obicnim jezikom. Browser nikada ne izmislja zamenske brojke ako veza padne.",
+    challengesHeading: "Tehnicki izazovi",
+    challengesIntro:
+      "Najteze nije bio 3D sjaj. Najtezi su bili poverenje, latencija i da svaka brojka ostane postena i kad nesto pukne.",
+    challenge1Title: "Cold start na besplatnom compute-u",
+    challenge1Body:
+      "Render Free moze da zaspi. Boot ekran pinguje health, pokazuje stvarnu telemetriju budenja i otkljucava UDJI U AURU tek kad engine odgovori.",
+    challenge2Title: "Tajne ostaju na serveru",
+    challenge2Body:
+      "Browser nikada ne sazna Render URL ni deljenu tajnu. Route handleri validiraju Zod-om, dodaju kljuc i vracaju genericke greske pri padu.",
+    challenge3Title: "Matematika nikad ne ide u browser",
+    challenge3Body:
+      "Kad veza padne, scena zadrzava poslednji Python rezultat oznacen kao zastareo. Klijentska zamenska aritmetika nije dozvoljena.",
+    challenge4Title: "Strogi CSP i same-origin ograda",
+    challenge4Body:
+      "CSP sa nonce vrednostima, BotID na simulate i Origin provere sprecavaju da javni demo postane otvoreni proxy ka engine-u.",
+    linksHeading: "Linkovi",
     githubCta: "Pogledaj GitHub profil",
-    fluxisPlaceholder: "Fluxis Labs sajt (URL placeholder)",
+    contactHeading: "Radite sa Fluxis Labs",
+    contactBody:
+      "Aura Workspace je vodeci portfolio eksponat Fluxis Labs-a - prostorna simulacija, WebGL zanat i produkcijski ozbiljna bezbednost u jednom demou.",
+    contactCta: "Posetite Fluxis Labs",
   },
   test: {
     title: "Simulacioni harness (privremeno)",

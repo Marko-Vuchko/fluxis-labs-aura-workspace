@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { PanelErrorBoundary } from "@/components/panel-error-boundary";
 import { BootScreen } from "@/features/boot/boot-screen";
 import { AiCopilot } from "@/features/copilot/ai-copilot";
+import { BuiltByMark } from "@/features/hud/built-by-mark";
 import { ComputeBadge } from "@/features/hud/compute-badge";
 import { ControlDeck } from "@/features/hud/control-deck";
 import { KpiPanel } from "@/features/hud/kpi-panel";
@@ -128,6 +129,7 @@ export default function AuraWorkspacePage() {
               </PanelErrorBoundary>
             </div>
             <div className="flex shrink-0 items-center gap-2">
+              <BuiltByMark className="mr-1 hidden min-[380px]:inline" />
               <PanelErrorBoundary label={t("ui.language")} compact>
                 <LanguageSwitch />
               </PanelErrorBoundary>
@@ -184,6 +186,7 @@ export default function AuraWorkspacePage() {
               </PanelErrorBoundary>
             </div>
             <div className="flex items-center gap-2">
+              <BuiltByMark className="mr-2" />
               <PanelErrorBoundary label={t("ui.language")} compact>
                 <LanguageSwitch />
               </PanelErrorBoundary>
