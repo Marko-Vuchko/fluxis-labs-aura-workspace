@@ -46,9 +46,10 @@ export type UseSimulationReturn = {
   setParams: (next: Partial<Omit<SimulationInput, "seed">>) => void;
   /** Debounced path used while dragging a slider. */
   queueSimulate: () => void;
-  /** Mandatory final request on pointer/keyboard release. */
+  /** Mandatory final request on pointer/keyboard release or after preset animation. */
   commitSimulate: () => void;
   setSelectedMonth: (month: number) => void;
+  /** Writes preset params only; caller commits after the 600 ms slider animation. */
   applyPreset: (id: PresetId) => void;
   reseed: () => void;
   resetSeed: () => void;
@@ -219,11 +220,9 @@ export function useSimulation(): UseSimulationReturn {
 
   const setParam = useCallback(
     (key: SimulationParamKey, value: number) => {
-      setParamsState((prev) => {
-        const next = { ...prev, [key]: value };
-        paramsRef.current = next;
-        return next;
-      });
+      const next = { ...paramsRef.current, [key]: value };
+      paramsRef.current = next;
+      setParamsState(next);
       queueSimulate();
     },
     [queueSimulate],
@@ -231,11 +230,9 @@ export function useSimulation(): UseSimulationReturn {
 
   const setParams = useCallback(
     (next: Partial<Omit<SimulationInput, "seed">>) => {
-      setParamsState((prev) => {
-        const merged = { ...prev, ...next };
-        paramsRef.current = merged;
-        return merged;
-      });
+      const merged = { ...paramsRef.current, ...next };
+      paramsRef.current = merged;
+      setParamsState(merged);
       queueSimulate();
     },
     [queueSimulate],
@@ -245,35 +242,29 @@ export function useSimulation(): UseSimulationReturn {
     setSelectedMonthState(clampMonth(month));
   }, []);
 
-  const applyPreset = useCallback(
-    (id: PresetId) => {
-      const preset = getPreset(id);
-      setParamsState((prev) => {
-        const merged = { ...prev, ...preset.params };
-        paramsRef.current = merged;
-        return merged;
-      });
-      commitSimulate();
-    },
-    [commitSimulate],
-  );
+  /**
+   * Writes preset params into state without requesting.
+   * Control Deck animates sliders for 600 ms, then calls commitSimulate once.
+   */
+  const applyPreset = useCallback((id: PresetId) => {
+    const preset = getPreset(id);
+    const merged = { ...paramsRef.current, ...preset.params };
+    paramsRef.current = merged;
+    setParamsState(merged);
+  }, []);
 
   const reseed = useCallback(() => {
     const seed = Math.floor(Math.random() * 2_147_483_647);
-    setParamsState((prev) => {
-      const merged = { ...prev, seed };
-      paramsRef.current = merged;
-      return merged;
-    });
+    const merged = { ...paramsRef.current, seed };
+    paramsRef.current = merged;
+    setParamsState(merged);
     commitSimulate();
   }, [commitSimulate]);
 
   const resetSeed = useCallback(() => {
-    setParamsState((prev) => {
-      const merged = { ...prev, seed: FIXED_SEED };
-      paramsRef.current = merged;
-      return merged;
-    });
+    const merged = { ...paramsRef.current, seed: FIXED_SEED };
+    paramsRef.current = merged;
+    setParamsState(merged);
     commitSimulate();
   }, [commitSimulate]);
 

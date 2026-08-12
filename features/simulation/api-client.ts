@@ -35,6 +35,8 @@ const simulationOutputSchema = z
         seed: z.number().int(),
         compute_ms: z.number().finite(),
         currency: z.string(),
+        clients_per_head: z.number().finite().optional(),
+        cost_per_head: z.number().finite().optional(),
       })
       .strict(),
     annual: z

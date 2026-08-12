@@ -100,6 +100,9 @@ export type SimulationMeta = {
   seed: number;
   compute_ms: number;
   currency: string;
+  /** Optional engine capacity economics (PRD 5.1). */
+  clients_per_head?: number;
+  cost_per_head?: number;
 };
 
 export type AnnualSummary = {
