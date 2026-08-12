@@ -31,7 +31,15 @@ export function QualityManager({ onQualityChange }: QualityManagerProps) {
     (factor: number, fps: number) => {
       factorRef.current = factor;
       const next = qualityFromFactor(factor, fps);
-      const key = `${next.dpr}|${next.particleCount}|${next.bloomEnabled}|${next.fps}`;
+      const key = [
+        next.dpr,
+        next.particleCount,
+        next.bloomEnabled,
+        next.histogramEnabled,
+        next.histogramReflection,
+        next.projectionEnabled,
+        next.projectionGlow,
+      ].join("|");
       if (typeof window !== "undefined") {
         window.__AURA_FPS = fps;
         window.__AURA_QUALITY = next;

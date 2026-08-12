@@ -3,15 +3,22 @@
 import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { Bloom, EffectComposer } from "@react-three/postprocessing";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { MonthSnapshot, NodeState } from "@/features/simulation/types";
+import type {
+  Histogram,
+  MonthSnapshot,
+  NodeId,
+  NodeState,
+} from "@/features/simulation/types";
 import { NODE_ORDER } from "@/features/simulation/types";
 
+import { HistogramBars } from "./histogram-bars";
 import { LinkFlow } from "./link-flow";
 import { NodeMesh } from "./node-mesh";
 import { useNodePositions } from "./node-positions";
 import { ParticleField } from "./particle-field";
+import { ProjectionCurve } from "./projection-curve";
 import {
   DEFAULT_SCENE_QUALITY,
   QualityManager,
@@ -19,9 +26,19 @@ import {
 import type { SceneQuality } from "./scene-quality";
 import { SceneBackground } from "./scene-background";
 
+declare global {
+  interface Window {
+    __AURA_LOCK_NODE?: (id: NodeId | null) => void;
+  }
+}
+
 export type SpatialCanvasProps = {
   nodes: readonly NodeState[] | null;
   month: MonthSnapshot | null;
+  months?: readonly MonthSnapshot[] | null;
+  histogram?: Histogram | null;
+  selectedMonth?: number;
+  currency?: string;
   reduceMotion?: boolean;
   className?: string;
 };
@@ -64,13 +81,25 @@ function CameraRig({ reduceMotion }: { reduceMotion: boolean }) {
 function SceneContent({
   nodes,
   month,
+  months,
+  histogram,
+  selectedMonth,
+  currency,
   quality,
   reduceMotion,
+  lockedNodeId,
+  onToggleLock,
 }: {
   nodes: readonly NodeState[] | null;
   month: MonthSnapshot | null;
+  months: readonly MonthSnapshot[] | null;
+  histogram: Histogram | null;
+  selectedMonth: number;
+  currency: string;
   quality: SceneQuality;
   reduceMotion: boolean;
+  lockedNodeId: NodeId | null;
+  onToggleLock: (id: NodeId) => void;
 }) {
   const positionsRef = useNodePositions(nodes);
   const riskScore = month?.risk.score ?? 0;
@@ -95,6 +124,14 @@ function SceneContent({
 
       <SceneBackground />
 
+      <HistogramBars histogram={histogram} quality={quality} />
+
+      <ProjectionCurve
+        months={months}
+        selectedMonth={selectedMonth}
+        quality={quality}
+      />
+
       <LinkFlow positionsRef={positionsRef} />
 
       <ParticleField
@@ -115,6 +152,10 @@ function SceneContent({
           reduceMotion={reduceMotion}
           capacityUsed={capacityUsed}
           customers={customers}
+          month={month}
+          currency={currency}
+          locked={lockedNodeId === id}
+          onToggleLock={onToggleLock}
         />
       ))}
 
@@ -140,11 +181,48 @@ function SceneContent({
 export function SpatialCanvas({
   nodes,
   month,
+  months = null,
+  histogram = null,
+  selectedMonth = 12,
+  currency = "USD",
   reduceMotion = false,
   className,
 }: SpatialCanvasProps) {
   const [quality, setQuality] = useState<SceneQuality>(DEFAULT_SCENE_QUALITY);
+  const [lockedNodeId, setLockedNodeId] = useState<NodeId | null>(null);
   const cameraPosition = useMemo(() => initialCameraPosition(), []);
+
+  const handleToggleLock = useCallback((id: NodeId) => {
+    setLockedNodeId((current) => (current === id ? null : id));
+  }, []);
+
+  const handleClearLock = useCallback(() => {
+    setLockedNodeId(null);
+  }, []);
+
+  useEffect(() => {
+    if (!lockedNodeId) {
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        handleClearLock();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [lockedNodeId, handleClearLock]);
+
+  useEffect(() => {
+    window.__AURA_LOCK_NODE = (id) => {
+      setLockedNodeId(id);
+    };
+    return () => {
+      delete window.__AURA_LOCK_NODE;
+    };
+  }, []);
 
   return (
     <div className={className ?? "h-full w-full"}>
@@ -165,6 +243,9 @@ export function SpatialCanvas({
         onCreated={({ gl }) => {
           gl.setClearColor("#05070D", 1);
         }}
+        onPointerMissed={() => {
+          handleClearLock();
+        }}
       >
         <color attach="background" args={["#05070D"]} />
         <fog attach="fog" args={["#05070D", 16, 40]} />
@@ -174,8 +255,14 @@ export function SpatialCanvas({
         <SceneContent
           nodes={nodes}
           month={month}
+          months={months}
+          histogram={histogram}
+          selectedMonth={selectedMonth}
+          currency={currency}
           quality={quality}
           reduceMotion={reduceMotion}
+          lockedNodeId={lockedNodeId}
+          onToggleLock={handleToggleLock}
         />
       </Canvas>
     </div>

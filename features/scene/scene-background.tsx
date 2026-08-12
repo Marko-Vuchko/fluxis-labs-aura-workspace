@@ -50,12 +50,13 @@ export function SceneBackground() {
 
   return (
     <group>
-      <primitive object={grid} />
+      <primitive object={grid} raycast={() => null} />
 
       {/* Soft radial fade disc so the grid dissolves toward the horizon. */}
       <mesh
         rotation={[-Math.PI / 2, 0, 0]}
         position={[0, -0.01, 0]}
+        raycast={() => null}
       >
         <circleGeometry args={[22, 64]} />
         <meshBasicMaterial
@@ -66,7 +67,7 @@ export function SceneBackground() {
         />
       </mesh>
 
-      <points>
+      <points raycast={() => null}>
         <bufferGeometry>
           <bufferAttribute
             attach="attributes-position"

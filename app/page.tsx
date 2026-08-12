@@ -60,6 +60,10 @@ export default function AuraWorkspacePage() {
         <SpatialCanvas
           nodes={nodes}
           month={month}
+          months={simulation.result?.months ?? null}
+          histogram={simulation.result?.histogram ?? null}
+          selectedMonth={simulation.selectedMonth}
+          currency={currency}
           reduceMotion={reduceMotion}
           className="h-full w-full"
         />

@@ -5,7 +5,12 @@ import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
-import type { NodeId, NodeState } from "@/features/simulation/types";
+import { NodeDetailCard } from "@/features/hud/node-detail-card";
+import type {
+  MonthSnapshot,
+  NodeId,
+  NodeState,
+} from "@/features/simulation/types";
 import { formatNumber, formatPercent } from "@/lib/i18n/format";
 import { useLanguage } from "@/lib/i18n/language-provider";
 import type { DictionaryKey } from "@/lib/i18n/dictionary";
@@ -23,6 +28,10 @@ export type NodeMeshProps = {
   reduceMotion: boolean;
   capacityUsed: number | null;
   customers: number | null;
+  month: MonthSnapshot | null;
+  currency: string;
+  locked: boolean;
+  onToggleLock: (id: NodeId) => void;
 };
 
 let haloTexture: THREE.CanvasTexture | null = null;
@@ -65,6 +74,7 @@ function nodeLabelKey(id: NodeId): DictionaryKey {
 
 /**
  * One spatial node: wireframe icosahedron, glowing core, soft halo sprite.
+ * Click locks the node and opens the detail card; hover keeps the light tooltip.
  */
 export function NodeMesh({
   id,
@@ -75,6 +85,10 @@ export function NodeMesh({
   reduceMotion,
   capacityUsed,
   customers,
+  month,
+  currency,
+  locked,
+  onToggleLock,
 }: NodeMeshProps) {
   const { t } = useLanguage();
   const groupRef = useRef<THREE.Group>(null);
@@ -113,7 +127,7 @@ export function NodeMesh({
       coreRef.current.scale.setScalar(pulse);
     }
     if (haloRef.current) {
-      const haloScale = 1.55 * pulse;
+      const haloScale = (locked ? 1.75 : 1.55) * pulse;
       haloRef.current.scale.set(haloScale, haloScale, 1);
     }
   });
@@ -130,6 +144,10 @@ export function NodeMesh({
         setHovered(false);
         document.body.style.cursor = "auto";
       }}
+      onClick={(event) => {
+        event.stopPropagation();
+        onToggleLock(id);
+      }}
     >
       {/* Wireframe icosahedral frame */}
       <mesh ref={wireRef}>
@@ -138,7 +156,7 @@ export function NodeMesh({
           color={colorObj}
           wireframe
           transparent
-          opacity={0.85}
+          opacity={locked ? 1 : 0.85}
         />
       </mesh>
 
@@ -148,7 +166,7 @@ export function NodeMesh({
         <meshStandardMaterial
           color={colorObj}
           emissive={colorObj}
-          emissiveIntensity={2.4}
+          emissiveIntensity={locked ? 3.1 : 2.4}
           roughness={0.35}
           metalness={0.1}
         />
@@ -160,24 +178,36 @@ export function NodeMesh({
           map={map}
           color={colorObj}
           transparent
-          opacity={0.55}
+          opacity={locked ? 0.72 : 0.55}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
         />
       </sprite>
 
-      {/* Invisible hit volume for reliable hover */}
+      {/* Invisible hit volume for reliable hover / click */}
       <mesh visible={false}>
         <sphereGeometry args={[0.75, 16, 16]} />
         <meshBasicMaterial />
       </mesh>
 
-      {hovered ? (
+      {locked ? (
+        <NodeDetailCard
+          id={id}
+          state={state}
+          month={month}
+          currency={currency}
+          onClose={() => {
+            onToggleLock(id);
+          }}
+        />
+      ) : null}
+
+      {!locked && hovered ? (
         <Html
           center
           distanceFactor={10}
           style={{ pointerEvents: "none" }}
-          zIndexRange={[100, 0]}
+          zIndexRange={[40, 20]}
         >
           <div
             className="min-w-[9.5rem] rounded-lg border border-primary/25 bg-[#070b14]/90 px-3 py-2 shadow-[0_0_24px_-12px_rgb(34_211_238_/_0.7)] backdrop-blur-md"
