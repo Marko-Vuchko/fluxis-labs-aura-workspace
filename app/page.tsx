@@ -1,5 +1,8 @@
 "use client";
 
+import { useState } from "react";
+
+import { BootScreen } from "@/features/boot/boot-screen";
 import { PRESETS } from "@/features/simulation/presets";
 import { useSimulation } from "@/features/simulation/use-simulation";
 import type { SimulationParamKey } from "@/features/simulation/types";
@@ -71,6 +74,28 @@ function statusLabelKey(
 export default function SimulationHarnessPage() {
   const { t, locale, setLocale } = useLanguage();
   const simulation = useSimulation();
+  const [hasEnteredAura, setHasEnteredAura] = useState(false);
+
+  const firstSimReady = simulation.result !== null;
+
+  // Boot screen owns the viewport until ENTER AURA. First sim completes during boot.
+  if (!hasEnteredAura) {
+    return (
+      <BootScreen
+        status={simulation.status}
+        error={simulation.error}
+        bootAttempt={simulation.bootAttempt}
+        bootAttempts={simulation.bootAttempts}
+        health={simulation.health}
+        firstSimReady={firstSimReady}
+        onRetry={simulation.retryBoot}
+        onEnter={() => {
+          setHasEnteredAura(true);
+        }}
+      />
+    );
+  }
+
   const month = simulation.result?.months.find(
     (entry) => entry.index === simulation.selectedMonth,
   );

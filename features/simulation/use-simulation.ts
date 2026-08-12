@@ -27,6 +27,12 @@ import type {
 
 const DEBOUNCE_MS = 120;
 
+export type BootAttemptTelemetry = {
+  attempt: number;
+  responseMs: number;
+  ok: boolean;
+};
+
 export type UseSimulationReturn = {
   params: SimulationInput;
   selectedMonth: number;
@@ -35,6 +41,7 @@ export type UseSimulationReturn = {
   status: SimulationStatus;
   error: string | null;
   bootAttempt: number;
+  bootAttempts: readonly BootAttemptTelemetry[];
   setParam: (key: SimulationParamKey, value: number) => void;
   setParams: (next: Partial<Omit<SimulationInput, "seed">>) => void;
   /** Debounced path used while dragging a slider. */
@@ -64,6 +71,9 @@ export function useSimulation(): UseSimulationReturn {
   const [status, setStatus] = useState<SimulationStatus>("booting");
   const [error, setError] = useState<string | null>(null);
   const [bootAttempt, setBootAttempt] = useState(0);
+  const [bootAttempts, setBootAttempts] = useState<BootAttemptTelemetry[]>(
+    [],
+  );
   const [, startTransition] = useTransition();
 
   const paramsRef = useRef(params);
@@ -162,6 +172,7 @@ export function useSimulation(): UseSimulationReturn {
     setStatus("booting");
     setError(null);
     setBootAttempt(0);
+    setBootAttempts([]);
     setHealth(null);
 
     const healthResult = await getHealth({
@@ -169,6 +180,11 @@ export function useSimulation(): UseSimulationReturn {
       onAttempt: (attempt) => {
         if (mountedRef.current) {
           setBootAttempt(attempt);
+        }
+      },
+      onAttemptResult: (result) => {
+        if (mountedRef.current) {
+          setBootAttempts((prev) => [...prev, result]);
         }
       },
     });
@@ -273,6 +289,7 @@ export function useSimulation(): UseSimulationReturn {
     status,
     error,
     bootAttempt,
+    bootAttempts,
     setParam,
     setParams,
     queueSimulate,

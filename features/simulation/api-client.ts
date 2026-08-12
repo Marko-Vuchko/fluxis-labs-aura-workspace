@@ -202,6 +202,12 @@ export async function postSimulate(
   }
 }
 
+export type HealthAttemptResult = {
+  attempt: number;
+  responseMs: number;
+  ok: boolean;
+};
+
 /**
  * Same-origin GET /api/health with exponential backoff for Render cold start.
  * Never throws - always returns a discriminated ApiResult.
@@ -212,6 +218,7 @@ export async function getHealth(
     timeoutMs?: number;
     maxWaitMs?: number;
     onAttempt?: (attempt: number) => void;
+    onAttemptResult?: (result: HealthAttemptResult) => void;
   },
 ): Promise<ApiResult<HealthResponse>> {
   const maxWaitMs = options?.maxWaitMs ?? HEALTH_MAX_WAIT_MS;
@@ -233,6 +240,21 @@ export async function getHealth(
       options?.timeoutMs ?? REQUEST_TIMEOUT_MS,
     );
 
+    const attemptStartedAt = Date.now();
+    let reportedResult = false;
+
+    const reportAttempt = (ok: boolean) => {
+      if (reportedResult) {
+        return;
+      }
+      reportedResult = true;
+      options?.onAttemptResult?.({
+        attempt,
+        responseMs: Date.now() - attemptStartedAt,
+        ok,
+      });
+    };
+
     try {
       const response = await fetch("/api/health", {
         method: "GET",
@@ -245,10 +267,13 @@ export async function getHealth(
         const json = await parseJson(response);
         const parsed = healthResponseSchema.safeParse(json);
         if (parsed.success) {
+          reportAttempt(true);
           return { ok: true, data: parsed.data };
         }
+        reportAttempt(false);
         lastError = "Invalid health response";
       } else {
+        reportAttempt(false);
         lastError = `Health failed (${response.status})`;
       }
     } catch (error) {
@@ -256,11 +281,15 @@ export async function getHealth(
       if (!failed.ok && failed.error === "Request aborted") {
         return failed;
       }
+      reportAttempt(false);
       if (!failed.ok) {
         lastError = failed.error;
       }
     } finally {
       cleanup();
+      if (!reportedResult && !options?.signal?.aborted) {
+        reportAttempt(false);
+      }
     }
 
     const remaining = maxWaitMs - (Date.now() - startedAt);
