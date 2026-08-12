@@ -88,7 +88,13 @@ Case study page (no 3D, no three.js): `http://localhost:3000/about`
 
 ## Deploy
 
-1. **Backend (Render Free):** create a web service from `backend/`, Python runtime from `runtime.txt`, start with Uvicorn pointing at `backend.main:app`. Set `AURA_API_SECRET`, `AURA_ENV=production`, and allowed hosts.
+Owner-only runbooks (do not deploy from an agent session):
+
+- [docs/DEPLOY.md](docs/DEPLOY.md) - Render service, Vercel env vars, WAF publish order
+- [docs/WAF.md](docs/WAF.md) - staged WAF commands and Attack Challenge Mode
+- [SECURITY.md](SECURITY.md) - private vulnerability reporting
+
+1. **Backend (Render Free):** create the web service from `render.yaml` (Frankfurt, one Uvicorn worker). Python 3.11 is pinned in `backend/runtime.txt`. Set `AURA_API_SECRET`, `AURA_ENV=production`, and allowed hosts.
 2. **Frontend (Vercel):** import the repo, set server-only `AURA_API_URL` and `AURA_API_SECRET` (no `NEXT_PUBLIC_` prefix). Optionally set `NEXT_PUBLIC_SITE_URL` for canonical metadata.
 3. Publish WAF / BotID rules from the Vercel account owner after a staged rollout.
 
