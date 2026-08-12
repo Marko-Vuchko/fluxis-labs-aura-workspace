@@ -56,7 +56,7 @@ Each slider change runs **1000 iterations across 12 months**. Every iteration ro
 ### Prerequisites
 
 - Node.js 24+
-- Python 3.11+ (3.13 works locally)
+- Python 3.13+ (NumPy 2.5 requires Python >= 3.12)
 - Backend venv created once:
 
 ```powershell
@@ -94,7 +94,7 @@ Owner-only runbooks (do not deploy from an agent session):
 - [docs/WAF.md](docs/WAF.md) - staged WAF commands and Attack Challenge Mode
 - [SECURITY.md](SECURITY.md) - private vulnerability reporting
 
-1. **Backend (Render Free):** create the web service from `render.yaml` (Frankfurt, one Uvicorn worker). Python 3.11 is pinned in `backend/runtime.txt`. Set `AURA_API_SECRET`, `AURA_ENV=production`, and allowed hosts.
+1. **Backend (Render Free):** create the web service from `render.yaml` (Frankfurt, one Uvicorn worker). Python 3.13 is pinned in `backend/runtime.txt`. Set `AURA_API_SECRET`, `AURA_ENV=production`, and allowed hosts.
 2. **Frontend (Vercel):** import the repo, set server-only `AURA_API_URL` and `AURA_API_SECRET` (no `NEXT_PUBLIC_` prefix). Optionally set `NEXT_PUBLIC_SITE_URL` for canonical metadata.
 3. Publish WAF / BotID rules from the Vercel account owner after a staged rollout.
 

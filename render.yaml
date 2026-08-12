@@ -1,7 +1,8 @@
 # Aura Workspace backend (Render Free).
-# Python 3.11 is pinned in backend/runtime.txt (python-3.11).
+# Python 3.13 is pinned in backend/runtime.txt (python-3.13).
+# NumPy 2.5 requires Python >= 3.12; 3.13 matches the verified local runtime.
 # Render's native runtime reads PYTHON_VERSION at the service root, so that
-# env var mirrors runtime.txt with a fully qualified 3.11 patch.
+# env var mirrors runtime.txt with a fully qualified 3.13 patch.
 services:
   - type: web
     name: aura-workspace-api
@@ -13,7 +14,7 @@ services:
     healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
-        value: "3.11.13"
+        value: "3.13.5"
       - key: AURA_ENV
         value: production
       - key: AURA_API_SECRET

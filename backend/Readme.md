@@ -1,6 +1,6 @@
 # Aura Workspace backend
 
-Monte Carlo simulation API for Aura Workspace. Python 3.11 on Render (`runtime.txt`); local development commonly uses 3.13.
+Monte Carlo simulation API for Aura Workspace. Python 3.13 on Render (`runtime.txt`); NumPy 2.5 requires Python >= 3.12.
 
 ## Setup
 

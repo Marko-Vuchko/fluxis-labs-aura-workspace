@@ -12,7 +12,7 @@ Repozitorijum: `Marko-Vuchko/fluxis-labs-aura-workspace` (javan). Vidljivost se 
 
 ## 1. Render servis (backend)
 
-Blueprint je `render.yaml` u korenu. Python 3.11 je zapisan u `backend/runtime.txt` (`python-3.11`); Blueprint to ogledava kao `PYTHON_VERSION=3.11.13` jer Render na native runtime-u čita tu env varijablu, ne ugnježdeni `runtime.txt`.
+Blueprint je `render.yaml` u korenu. Python 3.13 je zapisan u `backend/runtime.txt` (`python-3.13`); Blueprint to ogledava kao `PYTHON_VERSION=3.13.5` jer Render na native runtime-u čita tu env varijablu, ne ugnježdeni `runtime.txt`. NumPy 2.5 ne radi na 3.11.
 
 ### Opcija A: Blueprint (preporučeno)
 
@@ -36,7 +36,7 @@ Blueprint je `render.yaml` u korenu. Python 3.11 je zapisan u `backend/runtime.t
 
 | Key | Value |
 | --- | --- |
-| `PYTHON_VERSION` | `3.11.13` (ogledalo `backend/runtime.txt`) |
+| `PYTHON_VERSION` | `3.13.5` (ogledalo `backend/runtime.txt`) |
 | `AURA_ENV` | `production` |
 | `AURA_API_SECRET` | jaka slučajna tajna (Render Generate) |
 | `AURA_ALLOWED_HOSTS` | hostname servisa, npr. `aura-workspace-api.onrender.com` |
