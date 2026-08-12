@@ -56,6 +56,8 @@ function ComponentBar({
   toneClass: string;
 }) {
   const widthPct = Math.min(100, Math.max(0, value * 100));
+  const valueText = formatPercent(value, 0);
+  const valueNow = Math.round(widthPct);
 
   return (
     <div className="space-y-1">
@@ -64,11 +66,20 @@ function ComponentBar({
           {label}
         </span>
         <span className="font-mono text-[10px] text-foreground/80 tabular-nums">
-          {formatPercent(value, 0)}
+          {valueText}
         </span>
       </div>
-      <div className="h-1 overflow-hidden rounded-full bg-primary/10">
+      <div
+        role="progressbar"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={valueNow}
+        aria-valuetext={valueText}
+        className="h-1 overflow-hidden rounded-full bg-primary/10"
+      >
         <div
+          aria-hidden
           className={cn("h-full rounded-full transition-[width] duration-500", toneClass)}
           style={{ width: `${widthPct}%` }}
         />
@@ -86,7 +97,9 @@ export function RiskGauge({ risk, stale = false, className }: RiskGaugeProps) {
   if (!risk) {
     return (
       <HudPanel label={t("ui.risk")} className={cn("w-full max-w-md", className)}>
-        <p className="font-mono text-xs text-muted-foreground">-</p>
+        <p className="font-mono text-xs tracking-[0.08em] text-muted-foreground">
+          {t("ui.awaitingSimulation")}
+        </p>
       </HudPanel>
     );
   }
@@ -108,14 +121,23 @@ export function RiskGauge({ risk, stale = false, className }: RiskGaugeProps) {
           <p className="text-[10px] tracking-[0.18em] text-primary/80 uppercase">
             {t("ui.risk")}
           </p>
-          <AnimatedNumber
-            value={risk.score}
-            format={(value) => value.toFixed(1)}
-            className={cn(
-              "mt-1 font-mono text-4xl font-semibold tracking-tight tabular-nums",
-              tone,
-            )}
-          />
+          <div
+            role="progressbar"
+            aria-label={t("ui.risk")}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(Math.min(100, Math.max(0, risk.score)))}
+            aria-valuetext={risk.score.toFixed(1)}
+          >
+            <AnimatedNumber
+              value={risk.score}
+              format={(value) => value.toFixed(1)}
+              className={cn(
+                "mt-1 font-mono text-3xl font-semibold tracking-tight tabular-nums xl:text-4xl",
+                tone,
+              )}
+            />
+          </div>
         </div>
         {stale ? (
           <span className="font-mono text-[10px] tracking-[0.14em] text-status-warning uppercase">
@@ -124,7 +146,8 @@ export function RiskGauge({ risk, stale = false, className }: RiskGaugeProps) {
         ) : null}
       </div>
 
-      <div className="space-y-2.5">
+      {/* Full decomposition from lg up - 1024px still has room for the four bars */}
+      <div className="hidden space-y-2.5 lg:block">
         {RISK_COMPONENTS.map((component) => (
           <ComponentBar
             key={component.labelKey}

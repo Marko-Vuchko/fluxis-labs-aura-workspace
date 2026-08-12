@@ -5,6 +5,7 @@ import { useLayoutEffect, useRef, type RefObject } from "react";
 
 import { healthToColor } from "@/features/scene/health-color";
 import type { MonthSnapshot, NodeId, NodeState } from "@/features/simulation/types";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import type { DictionaryKey } from "@/lib/i18n/dictionary";
 import {
   formatCompact,
@@ -69,6 +70,7 @@ function useClampToViewport(
 /**
  * HTML detail card anchored to a locked spatial node via drei Html.
  * Stays open while the scrubber moves; figures follow the selected month.
+ * Focus is trapped while open; Escape closes and restores prior focus.
  * zIndexRange stays below the HUD stack (Control Deck at z-10) so the deck
  * remains readable, while the solid panel keeps the card clear of bloom.
  */
@@ -81,10 +83,18 @@ export function NodeDetailCard({
 }: NodeDetailCardProps) {
   const { t } = useLanguage();
   const articleRef = useRef<HTMLElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const health = state?.[0] ?? null;
   const healthColor = health !== null ? healthToColor(health) : "#94a3b8";
 
   useClampToViewport(articleRef, [id, month?.index, health]);
+
+  useFocusTrap({
+    active: true,
+    containerRef: articleRef,
+    onEscape: onClose,
+    initialFocusRef: closeButtonRef,
+  });
 
   return (
     <Html
@@ -98,6 +108,7 @@ export function NodeDetailCard({
       <article
         ref={articleRef}
         role="dialog"
+        aria-modal="true"
         aria-label={t(nodeLabelKey(id))}
         className="w-[min(13.5rem,calc(100vw-1rem))] rounded-lg border border-primary/30 bg-[#070b14]/94 px-3 py-2.5 shadow-[0_0_28px_-14px_rgb(34_211_238_/_0.65)] backdrop-blur-md"
         onPointerDown={(event) => {
@@ -119,6 +130,7 @@ export function NodeDetailCard({
             ) : null}
           </div>
           <button
+            ref={closeButtonRef}
             type="button"
             aria-label={t("ui.close")}
             className="inline-flex min-h-11 min-w-11 items-center justify-center rounded border border-primary/25 px-1.5 font-mono text-[10px] text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground lg:min-h-0 lg:min-w-0 lg:py-0.5"
@@ -127,7 +139,7 @@ export function NodeDetailCard({
               onClose();
             }}
           >
-            Esc
+            {t("ui.escape")}
           </button>
         </header>
 

@@ -15,6 +15,13 @@ class RiskBlock:
 
 
 @dataclass(frozen=True)
+class InsightItem:
+    code: str
+    severity: Severity
+    params: dict[str, float | int]
+
+
+@dataclass(frozen=True)
 class MonthSnapshot:
     index: int
     revenue: list[float]
@@ -27,6 +34,7 @@ class MonthSnapshot:
     runway_months: float | None
     risk: RiskBlock
     nodes: list[list[float]]
+    insights: list[InsightItem]
 
 
 @dataclass(frozen=True)
@@ -52,13 +60,6 @@ class SensitivityItem:
 
 
 @dataclass(frozen=True)
-class InsightItem:
-    code: str
-    severity: Severity
-    params: dict[str, float | int]
-
-
-@dataclass(frozen=True)
 class MetaBlock:
     engine_version: str
     iterations: int
@@ -66,6 +67,9 @@ class MetaBlock:
     seed: int
     compute_ms: float
     currency: str
+    # Capacity economics echoed from engine constants (PRD FR-2 / 5.1).
+    clients_per_head: int
+    cost_per_head: float
 
 
 @dataclass(frozen=True)

@@ -118,7 +118,7 @@ export function PresetBar({
               "focus-visible:ring-2 focus-visible:ring-primary/45",
               "max-lg:min-h-11",
               selected &&
-                "border-primary/70 bg-primary/15 text-primary shadow-[0_0_18px_-6px_rgb(34_211_238_/_0.85)]",
+                "border-primary/70 bg-primary/15 text-primary shadow-[0_0_14px_-8px_rgb(34_211_238_/_0.45)]",
             )}
             aria-label={t(`ui.${preset.labelKey}`)}
             aria-pressed={selected}

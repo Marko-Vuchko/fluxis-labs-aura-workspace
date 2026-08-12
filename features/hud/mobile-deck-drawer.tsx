@@ -2,8 +2,14 @@
 
 import { ChevronUp } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 
+import {
+  MOBILE_DECK_CLOSE_EVENT,
+  MOBILE_DECK_OPEN_EVENT,
+  useTourUiActive,
+} from "@/features/tour/guided-tour";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useLanguage } from "@/lib/i18n/language-provider";
 import { cn } from "@/lib/utils";
 
@@ -22,21 +28,30 @@ export function MobileDeckDrawer(props: MobileDeckDrawerProps) {
   const [open, setOpen] = useState(false);
   const titleId = useId();
   const panelId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const wasOpenRef = useRef(false);
+  const tourUiActive = useTourUiActive();
+
+  const closeDrawer = useCallback(() => {
+    setOpen(false);
+  }, []);
 
   useEffect(() => {
-    if (!open) {
-      return;
-    }
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
+    const onOpen = () => {
+      setOpen(true);
     };
-    window.addEventListener("keydown", onKeyDown);
+    const onClose = () => {
+      setOpen(false);
+    };
+    window.addEventListener(MOBILE_DECK_OPEN_EVENT, onOpen);
+    window.addEventListener(MOBILE_DECK_CLOSE_EVENT, onClose);
     return () => {
-      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener(MOBILE_DECK_OPEN_EVENT, onOpen);
+      window.removeEventListener(MOBILE_DECK_CLOSE_EVENT, onClose);
     };
-  }, [open]);
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -48,6 +63,23 @@ export function MobileDeckDrawer(props: MobileDeckDrawerProps) {
       document.body.style.overflow = previous;
     };
   }, [open]);
+
+  // Trigger unmounts while open; restore focus after it remounts on close.
+  useEffect(() => {
+    if (wasOpenRef.current && !open) {
+      triggerRef.current?.focus();
+    }
+    wasOpenRef.current = open;
+  }, [open]);
+
+  useFocusTrap({
+    // Tour owns the trap while its dialog is up (deck may be open as a target).
+    active: open && !tourUiActive,
+    containerRef: panelRef,
+    restoreFocus: false,
+    onEscape: closeDrawer,
+    initialFocusRef: closeButtonRef,
+  });
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40">
@@ -62,16 +94,20 @@ export function MobileDeckDrawer(props: MobileDeckDrawerProps) {
             animate={{ opacity: 1 }}
             exit={reduceMotion ? undefined : { opacity: 0 }}
             transition={{ duration: reduceMotion ? 0 : 0.2 }}
-            onClick={() => {
-              setOpen(false);
-            }}
+            onClick={closeDrawer}
+            tabIndex={tourUiActive ? -1 : 0}
           />
         ) : null}
       </AnimatePresence>
 
-      <div className="pointer-events-auto relative">
+      <div
+        id="aura-control-deck-trigger"
+        tabIndex={-1}
+        className="pointer-events-auto relative outline-none"
+      >
         {!open ? (
           <button
+            ref={triggerRef}
             type="button"
             aria-expanded={false}
             aria-controls={panelId}
@@ -97,6 +133,7 @@ export function MobileDeckDrawer(props: MobileDeckDrawerProps) {
           {open ? (
             <motion.div
               key="panel"
+              ref={panelRef}
               id={panelId}
               role="dialog"
               aria-modal="true"
@@ -119,13 +156,12 @@ export function MobileDeckDrawer(props: MobileDeckDrawerProps) {
             >
               <div className="flex shrink-0 items-center justify-between gap-3 border-b border-primary/10 px-4 py-2">
                 <button
+                  ref={closeButtonRef}
                   type="button"
                   aria-expanded={true}
                   aria-controls={panelId}
                   aria-label={t("ui.controlDeckClose")}
-                  onClick={() => {
-                    setOpen(false);
-                  }}
+                  onClick={closeDrawer}
                   className={cn(
                     "flex min-h-11 min-w-11 flex-1 items-center justify-center gap-2",
                     "rounded-md text-[11px] tracking-[0.18em] text-primary/90 uppercase",

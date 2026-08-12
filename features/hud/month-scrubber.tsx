@@ -10,6 +10,8 @@ import { orbitGuardPointerDown } from "./orbit-gate";
 export type MonthScrubberProps = {
   selectedMonth: number;
   onMonthChange: (month: number) => void;
+  /** Fired on pointer/keyboard commit so the shareable URL can update. */
+  onMonthCommit?: () => void;
   className?: string;
   /** Enlarge thumb / hit area for narrow touch layouts (44 px). */
   enlargeTouch?: boolean;
@@ -22,6 +24,7 @@ export type MonthScrubberProps = {
 export function MonthScrubber({
   selectedMonth,
   onMonthChange,
+  onMonthCommit,
   className,
   enlargeTouch = false,
 }: MonthScrubberProps) {
@@ -58,6 +61,9 @@ export function MonthScrubber({
               return;
             }
             onMonthChange(Math.round(raw));
+          }}
+          onValueCommitted={() => {
+            onMonthCommit?.();
           }}
           className={cn(
             "[&_[data-slot=slider-track]]:h-1.5 [&_[data-slot=slider-track]]:bg-primary/15",

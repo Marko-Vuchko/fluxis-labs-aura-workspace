@@ -1,24 +1,35 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { cookies, headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "@/lib/i18n/language-provider";
+import {
+  DEFAULT_LOCALE,
+  LOCALE_COOKIE_KEY,
+  isLocale,
+  type Locale,
+} from "@/lib/i18n/dictionary";
 import {
   SITE_DESCRIPTION,
   SITE_NAME,
   SITE_TITLE,
   SITE_URL,
 } from "@/lib/site-config";
+import {
+  getSoftwareApplicationJsonLd,
+  serializeJsonLd,
+} from "@/lib/seo/json-ld";
 import { cn } from "@/lib/utils";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
 });
 
 export const metadata: Metadata = {
@@ -65,18 +76,47 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+// CSP nonce from proxy.ts is per-request; static shells cannot carry it.
+export const dynamic = "force-dynamic";
+
+async function readRequestLocale(): Promise<Locale> {
+  const jar = await cookies();
+  const raw = jar.get(LOCALE_COOKIE_KEY)?.value;
+  if (raw && isLocale(raw)) {
+    return raw;
+  }
+  return DEFAULT_LOCALE;
+}
+
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const locale = await readRequestLocale();
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html
-      lang="en"
+      lang={locale}
+      nonce={nonce}
       className={cn(
         "dark h-full antialiased font-sans",
         geistSans.variable,
         geistMono.variable,
       )}
+      suppressHydrationWarning
     >
-      <body className="flex min-h-full flex-col">
-        <LanguageProvider>{children}</LanguageProvider>
+      <body
+        className="flex min-h-full flex-col"
+        nonce={nonce}
+        suppressHydrationWarning
+      >
+        <LanguageProvider initialLocale={locale}>{children}</LanguageProvider>
+        <script
+          id="aura-software-application-jsonld"
+          type="application/ld+json"
+          nonce={nonce}
+          dangerouslySetInnerHTML={{
+            __html: serializeJsonLd(getSoftwareApplicationJsonLd()),
+          }}
+        />
       </body>
     </html>
   );

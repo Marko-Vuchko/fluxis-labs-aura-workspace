@@ -12,6 +12,7 @@ import {
 
 import {
   DEFAULT_LOCALE,
+  LOCALE_COOKIE_KEY,
   LOCALE_STORAGE_KEY,
   isLocale,
   translate,
@@ -70,8 +71,13 @@ function getLocaleSnapshot(): Locale {
   return readStoredLocale();
 }
 
-function getServerLocaleSnapshot(): Locale {
-  return DEFAULT_LOCALE;
+function writeLocaleCookie(locale: Locale): void {
+  try {
+    const maxAge = 60 * 60 * 24 * 365;
+    document.cookie = `${LOCALE_COOKIE_KEY}=${locale};path=/;max-age=${maxAge};samesite=lax`;
+  } catch {
+    // Ignore cookie failures (privacy mode); localStorage + event still update UI.
+  }
 }
 
 function persistLocale(locale: Locale): void {
@@ -80,18 +86,27 @@ function persistLocale(locale: Locale): void {
   } catch {
     // Ignore quota / private mode failures; in-memory listeners still update via event.
   }
+  writeLocaleCookie(locale);
   window.dispatchEvent(new Event(LOCALE_EVENT));
 }
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
+export function LanguageProvider({
+  children,
+  initialLocale = DEFAULT_LOCALE,
+}: {
+  children: ReactNode;
+  /** SSR-resolved locale from cookie so server and first paint agree. */
+  initialLocale?: Locale;
+}) {
   const locale = useSyncExternalStore(
     subscribeLocale,
     getLocaleSnapshot,
-    getServerLocaleSnapshot,
+    () => initialLocale,
   );
 
   useEffect(() => {
     document.documentElement.lang = locale;
+    writeLocaleCookie(locale);
   }, [locale]);
 
   const setLocale = useCallback((next: Locale) => {

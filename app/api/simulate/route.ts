@@ -1,141 +1,31 @@
 import { checkBotId } from "botid/server";
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 
+import {
+  checkEdgeRateLimit,
+  getClientIp,
+  isSameOriginRequest,
+} from "@/lib/api/guards";
+import {
+  getCachedSimulate,
+  setCachedSimulate,
+  simulateCacheKey,
+} from "@/lib/api/simulate-cache";
 import { getServerEnv } from "@/lib/env";
+import {
+  parseSimulationOutput,
+  simulationInputSchema,
+} from "@/lib/simulation/contract";
 
 export const runtime = "nodejs";
 
 const MAX_BODY_BYTES = 4 * 1024;
 const UPSTREAM_TIMEOUT_MS = 15_000;
 
-const percentileTripleSchema = z.tuple([
-  z.number().finite(),
-  z.number().finite(),
-  z.number().finite(),
-]);
-
-const nodeSchema = z.tuple([
-  z.number().finite(),
-  z.number().finite(),
-  z.number().finite(),
-  z.number().finite(),
-]);
-
-const simulationInputSchema = z
-  .object({
-    ad_spend: z.number().finite().min(0).max(50_000),
-    price: z.number().finite().min(10).max(2_000),
-    team_size: z.number().int().min(1).max(50),
-    opex: z.number().finite().min(0).max(100_000),
-    cash_reserve: z.number().finite().min(0).max(500_000),
-    seed: z.number().int().optional(),
-  })
-  .strict();
-
-const simulationOutputSchema = z
-  .object({
-    meta: z
-      .object({
-        engine_version: z.string(),
-        iterations: z.number().int(),
-        months: z.number().int(),
-        seed: z.number().int(),
-        compute_ms: z.number().finite(),
-        currency: z.string(),
-      })
-      .strict(),
-    annual: z
-      .object({
-        revenue: percentileTripleSchema,
-        profit: percentileTripleSchema,
-        margin: percentileTripleSchema,
-        ending_cash: percentileTripleSchema,
-      })
-      .strict(),
-    months: z
-      .array(
-        z
-          .object({
-            index: z.number().int().min(1).max(12),
-            revenue: percentileTripleSchema,
-            profit: percentileTripleSchema,
-            margin: z.number().finite(),
-            customers: z.number().finite(),
-            churn_rate: z.number().finite(),
-            capacity_used: z.number().finite(),
-            cash: z.number().finite(),
-            runway_months: z.number().finite().nullable(),
-            risk: z
-              .object({
-                score: z.number().finite(),
-                components: z.tuple([
-                  z.number().finite(),
-                  z.number().finite(),
-                  z.number().finite(),
-                  z.number().finite(),
-                ]),
-              })
-              .strict(),
-            nodes: z.array(nodeSchema).length(7),
-          })
-          .strict(),
-      )
-      .length(12),
-    histogram: z
-      .object({
-        metric: z.literal("annual_profit"),
-        bin_edges: z.array(z.number().finite()).length(31),
-        counts: z.array(z.number().int()).length(30),
-      })
-      .strict(),
-    sensitivity: z.array(
-      z
-        .object({
-          param: z.string(),
-          coefficient: z.number().finite(),
-          rank: z.number().int(),
-        })
-        .strict(),
-    ),
-    insights: z
-      .array(
-        z
-          .object({
-            code: z.string(),
-            severity: z.enum(["info", "warning", "critical"]),
-            params: z.record(z.string(), z.number()),
-          })
-          .strict(),
-      )
-      .length(3),
-  })
-  .strict();
-
-export type SimulationInput = z.infer<typeof simulationInputSchema>;
-export type SimulationOutput = z.infer<typeof simulationOutputSchema>;
-
-function isSameOriginRequest(request: NextRequest): boolean {
-  const secFetchSite = request.headers.get("sec-fetch-site");
-  if (secFetchSite !== "same-origin") {
-    return false;
-  }
-
-  const origin = request.headers.get("origin");
-  const host = request.headers.get("host");
-  if (!origin || !host) {
-    return false;
-  }
-
-  try {
-    const originUrl = new URL(origin);
-    const expectedHost = host.toLowerCase();
-    const originHost = originUrl.host.toLowerCase();
-    return originHost === expectedHost;
-  } catch {
-    return false;
-  }
-}
+export type {
+  SimulationInput,
+  SimulationOutput,
+} from "@/lib/simulation/contract";
 
 function genericError(status: number): NextResponse {
   return NextResponse.json({ error: "Request failed" }, { status });
@@ -144,6 +34,27 @@ function genericError(status: number): NextResponse {
 export async function POST(request: NextRequest) {
   if (!isSameOriginRequest(request)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const rate = checkEdgeRateLimit(`simulate:${getClientIp(request)}`);
+  if (!rate.ok) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rate.retryAfterSec) },
+      },
+    );
+  }
+
+  const verification = await checkBotId({
+    advancedOptions: {
+      checkLevel: "basic",
+    },
+  });
+
+  if (verification.isBot) {
+    return NextResponse.json({ error: "Access denied" }, { status: 403 });
   }
 
   const contentLengthHeader = request.headers.get("content-length");
@@ -179,20 +90,20 @@ export async function POST(request: NextRequest) {
 
   const input = simulationInputSchema.safeParse(jsonBody);
   if (!input.success) {
-    return NextResponse.json(
-      { error: "Invalid input", details: input.error.flatten() },
-      { status: 400 },
-    );
+    console.error("simulate input validation failed", input.error.flatten());
+    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  const verification = await checkBotId({
-    advancedOptions: {
-      checkLevel: "basic",
-    },
-  });
-
-  if (verification.isBot) {
-    return NextResponse.json({ error: "Access denied" }, { status: 403 });
+  const cacheKey = simulateCacheKey(input.data as Record<string, unknown>);
+  const cachedBody = getCachedSimulate(cacheKey);
+  if (cachedBody !== null) {
+    return new NextResponse(cachedBody, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "X-Aura-Cache": "HIT",
+      },
+    });
   }
 
   const { AURA_API_URL, AURA_API_SECRET } = getServerEnv();
@@ -212,6 +123,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(input.data),
       signal: controller.signal,
       cache: "no-store",
+      redirect: "error",
     });
 
     if (!upstream.ok) {
@@ -232,7 +144,7 @@ export async function POST(request: NextRequest) {
       return genericError(502);
     }
 
-    const output = simulationOutputSchema.safeParse(upstreamJson);
+    const output = parseSimulationOutput(upstreamJson);
     if (!output.success) {
       console.error(
         "simulate upstream schema mismatch",
@@ -241,7 +153,16 @@ export async function POST(request: NextRequest) {
       return genericError(502);
     }
 
-    return NextResponse.json(output.data);
+    const body = JSON.stringify(output.data);
+    setCachedSimulate(cacheKey, body);
+
+    return new NextResponse(body, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "X-Aura-Cache": "MISS",
+      },
+    });
   } catch (error) {
     console.error("simulate upstream error", error);
     return genericError(502);

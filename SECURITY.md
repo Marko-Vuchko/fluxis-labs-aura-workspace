@@ -50,3 +50,7 @@ We will credit reporters in the advisory if they want that. We will not pay a bu
 - Rotate `AURA_API_SECRET` on both Render and Vercel if it may have leaked.
 - GitHub secret scanning is expected to stay enabled on this public repository.
 - Do not commit `.env`, `.env.local`, or any real API secret.
+- Per-visitor rate limiting for `/api/*` is enforced in the Next BFF (`lib/api/guards.ts`) and should also be published on Vercel WAF by the account owner per [docs/WAF.md](docs/WAF.md). Agents do not run `vercel firewall publish`.
+- Production `AURA_API_URL` must be `https` and a host on the SSRF allowlist (`AURA_API_URL_ALLOWED_HOSTS`, default `aura-workspace-api.onrender.com`). Development stays on `127.0.0.1`.
+- FastAPI keeps a **global overload guard** only: behind the BFF, `request.client.host` is shared egress, so it is not a per-user limit.
+- Upstream `GET /health` is public; the Next `/api/health` route must not forward `X-Aura-Key`.

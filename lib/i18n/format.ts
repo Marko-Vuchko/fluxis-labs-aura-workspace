@@ -60,17 +60,19 @@ export function formatFull(
 
 /**
  * Tooltip body: full value, then optional p10 / p90 lines underneath.
+ * Percentile labels come from the caller so both locales stay in the dictionary.
  */
 export function formatRangeTooltip(
   value: number,
   currency = "USD",
   range?: { p10: number; p90: number },
+  labels: { p10: string; p90: string } = { p10: "p10", p90: "p90" },
 ): string {
   const lines = [formatFull(value, currency)];
 
   if (range) {
-    lines.push(`p10 ${formatFull(range.p10, currency)}`);
-    lines.push(`p90 ${formatFull(range.p90, currency)}`);
+    lines.push(`${labels.p10} ${formatFull(range.p10, currency)}`);
+    lines.push(`${labels.p90} ${formatFull(range.p90, currency)}`);
   }
 
   return lines.join("\n");

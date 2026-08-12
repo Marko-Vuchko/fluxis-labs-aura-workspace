@@ -168,7 +168,9 @@ export function SceneFallback({
               {t("ui.runway")}:{" "}
               {month.runway_months === null
                 ? t("ui.profitable")
-                : `${formatNumber(month.runway_months, 1)} mo`}
+                : t("ui.monthsUnit", {
+                    n: formatNumber(month.runway_months, 1),
+                  })}
             </p>
           </section>
         ) : (
@@ -271,7 +273,7 @@ export function SceneFallback({
                   className="rounded-md border border-primary/10 bg-background/40 px-2 py-1.5"
                 >
                   <p className="font-mono text-[10px] text-muted-foreground">
-                    M{entry.index}
+                    {t("ui.monthAbbrev", { n: entry.index })}
                   </p>
                   <p className="font-mono text-xs tabular-nums text-primary">
                     {formatCompact(entry.profit[1])}

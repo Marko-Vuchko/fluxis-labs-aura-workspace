@@ -28,8 +28,8 @@ export function HudPanel({
       aria-label={label}
       className={cn(
         "relative overflow-hidden rounded-xl",
-        "border border-primary/20 bg-[#070b14]/78 p-4",
-        "shadow-[0_0_40px_-24px_rgb(34_211_238_/_0.55)] backdrop-blur-md",
+        "border border-primary/18 bg-[#070b14]/78 p-4",
+        "shadow-[0_0_28px_-22px_rgb(34_211_238_/_0.32)] backdrop-blur-md",
         className,
       )}
     >

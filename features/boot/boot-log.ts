@@ -9,6 +9,7 @@ export type BootLogMessages = {
   engineVersion: string;
   numpyWarmup: string;
   firstSimReady: string;
+  unreachable: string;
 };
 
 export type BootLogInput = {
@@ -34,6 +35,9 @@ export function buildBootLogLines(
     lines.push(
       interpolate(messages.responseMs, { ms: entry.responseMs }),
     );
+    if (!entry.ok) {
+      lines.push(messages.unreachable);
+    }
   }
 
   if (input.health) {

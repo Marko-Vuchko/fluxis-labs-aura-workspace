@@ -38,6 +38,7 @@ type KpiMetric = {
 function buildMetrics(
   month: MonthSnapshot,
   currency: string,
+  percentileLabels: { p10: string; p90: string },
 ): readonly KpiMetric[] {
   const revenueP50 = month.revenue[1];
   const profitP50 = month.profit[1];
@@ -51,7 +52,7 @@ function buildMetrics(
       tooltip: formatRangeTooltip(revenueP50, currency, {
         p10: month.revenue[0],
         p90: month.revenue[2],
-      }),
+      }, percentileLabels),
     },
     {
       id: "profit",
@@ -61,7 +62,7 @@ function buildMetrics(
       tooltip: formatRangeTooltip(profitP50, currency, {
         p10: month.profit[0],
         p90: month.profit[2],
-      }),
+      }, percentileLabels),
     },
     {
       id: "margin",
@@ -157,12 +158,17 @@ export function KpiPanel({
         label={t("ui.revenue")}
         className={cn("w-full max-w-md", className)}
       >
-        <p className="font-mono text-xs text-muted-foreground">-</p>
+        <p className="font-mono text-xs tracking-[0.08em] text-muted-foreground">
+          {t("ui.awaitingSimulation")}
+        </p>
       </HudPanel>
     );
   }
 
-  const metrics = buildMetrics(month, currency);
+  const metrics = buildMetrics(month, currency, {
+    p10: t("ui.p10"),
+    p90: t("ui.p90"),
+  });
 
   return (
     <TooltipProvider delay={120}>

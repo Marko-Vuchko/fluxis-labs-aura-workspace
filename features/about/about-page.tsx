@@ -9,8 +9,9 @@ import { CornerBracket } from "@/features/hud/hud-chrome";
 import { useLanguage } from "@/lib/i18n/language-provider";
 import {
   GITHUB_PROFILE_URL,
+  GITHUB_REPO_URL,
   SITE_NAME,
-  getFluxisLabsUrl,
+  getContactCta,
 } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 
@@ -62,8 +63,8 @@ function SectionPanel({
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-xl border border-primary/20 bg-[#070b14]/78 p-5 sm:p-6",
-        "shadow-[0_0_40px_-24px_rgb(34_211_238_/_0.45)] backdrop-blur-md",
+        "relative overflow-hidden rounded-xl border border-primary/18 bg-[#070b14]/78 p-5 sm:p-6",
+        "shadow-[0_0_28px_-22px_rgb(34_211_238_/_0.28)] backdrop-blur-md",
         className,
       )}
     >
@@ -78,13 +79,13 @@ function SectionPanel({
 
 export function AboutPageContent() {
   const { t } = useLanguage();
-  const fluxisUrl = getFluxisLabsUrl();
+  const contact = getContactCta();
 
   return (
     <main className="relative min-h-dvh bg-background text-foreground">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgb(34_211_238_/_0.12),_transparent_55%),radial-gradient(ellipse_at_bottom_right,_rgb(168_85_247_/_0.1),_transparent_50%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgb(34_211_238_/_0.1),_transparent_55%),radial-gradient(ellipse_at_bottom_right,_rgb(168_85_247_/_0.07),_transparent_50%)]"
       />
 
       <div className="relative mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-12">
@@ -179,10 +180,18 @@ export function AboutPageContent() {
           </h2>
           <div className="mt-4 flex flex-wrap gap-3">
             <a
-              href={GITHUB_PROFILE_URL}
+              href={GITHUB_REPO_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/85"
+            >
+              {t("about.repoCta")}
+            </a>
+            <a
+              href={GITHUB_PROFILE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-xl border border-primary/25 px-4 py-2 text-sm font-medium text-primary transition hover:border-primary/50 hover:bg-primary/10"
             >
               {t("about.githubCta")}
             </a>
@@ -196,16 +205,16 @@ export function AboutPageContent() {
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
             {t("about.contactBody")}
           </p>
-          {fluxisUrl ? (
-            <a
-              href={fluxisUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 inline-flex rounded-xl border border-accent/40 px-4 py-2 text-sm font-medium text-accent transition hover:border-accent hover:bg-accent/10"
-            >
-              {t("about.contactCta")}
-            </a>
-          ) : null}
+          <a
+            href={contact.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-flex rounded-xl border border-accent/40 px-4 py-2 text-sm font-medium text-accent transition hover:border-accent hover:bg-accent/10"
+          >
+            {contact.kind === "fluxis"
+              ? t("about.contactCta")
+              : t("about.contactCtaGithub")}
+          </a>
         </SectionPanel>
       </div>
     </main>

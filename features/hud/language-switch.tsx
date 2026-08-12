@@ -1,12 +1,16 @@
 "use client";
 
 import { useLanguage } from "@/lib/i18n/language-provider";
-import type { Locale } from "@/lib/i18n/dictionary";
+import type { DictionaryKey, Locale } from "@/lib/i18n/dictionary";
 import { cn } from "@/lib/utils";
 
-const OPTIONS: readonly { locale: Locale; label: string }[] = [
-  { locale: "en", label: "EN" },
-  { locale: "sr", label: "SR" },
+const OPTIONS: readonly {
+  locale: Locale;
+  label: string;
+  ariaKey: DictionaryKey;
+}[] = [
+  { locale: "en", label: "EN", ariaKey: "ui.english" },
+  { locale: "sr", label: "SR", ariaKey: "ui.serbian" },
 ];
 
 export type LanguageSwitchProps = {
@@ -35,6 +39,7 @@ export function LanguageSwitch({ className }: LanguageSwitchProps) {
           <button
             key={option.locale}
             type="button"
+            aria-label={t(option.ariaKey)}
             aria-pressed={active}
             onClick={() => {
               setLocale(option.locale);

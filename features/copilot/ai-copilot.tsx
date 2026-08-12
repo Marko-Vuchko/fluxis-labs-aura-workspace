@@ -46,6 +46,7 @@ export type AiCopilotProps = {
   /** Narrow layout: one insight at a time with pager through the rest. */
   compact?: boolean;
   className?: string;
+  onRetry?: () => void;
 };
 
 function sortBySeverity(insights: readonly Insight[]): Insight[] {
@@ -188,6 +189,111 @@ function InsightRow({
   );
 }
 
+function CompactInsightPager({
+  ranked,
+  runKey,
+  sensitivity,
+  reduceMotion,
+}: {
+  ranked: readonly Insight[];
+  runKey: string;
+  sensitivity: readonly SensitivityItem[];
+  reduceMotion: boolean | null;
+}) {
+  const { t } = useLanguage();
+  const [activeIndex, setActiveIndex] = useState(0);
+  const safeIndex =
+    ranked.length === 0 ? 0 : Math.min(activeIndex, ranked.length - 1);
+  const activeInsight = ranked[safeIndex] ?? null;
+
+  return (
+    <div className="space-y-3">
+      <AnimatePresence mode="wait" initial={false}>
+        {activeInsight ? (
+          <motion.div
+            key={`${runKey}-${activeInsight.code}-${safeIndex}`}
+            initial={reduceMotion ? false : { opacity: 0, x: 12 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={reduceMotion ? undefined : { opacity: 0, x: -12 }}
+            transition={
+              reduceMotion
+                ? { duration: 0 }
+                : { duration: 0.22, ease: "easeOut" }
+            }
+            className="flex items-start gap-3"
+            aria-live="polite"
+          >
+            <SeverityIcon
+              severity={activeInsight.severity}
+              label={t(severityLabelKey(activeInsight.severity))}
+            />
+            <InsightRenderer
+              insight={activeInsight}
+              leverLabel={leverLabelForInsight(
+                activeInsight,
+                sensitivity,
+                t,
+              )}
+              className="min-w-0 flex-1 text-sm leading-relaxed"
+            />
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      {ranked.length > 1 ? (
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            aria-label={t("ui.previousInsight")}
+            disabled={safeIndex === 0}
+            onClick={() => {
+              setActiveIndex((value) => Math.max(0, value - 1));
+            }}
+            className={cn(
+              "inline-flex size-8 items-center justify-center rounded-sm",
+              "border border-primary/20 bg-[#05070d]/70 text-primary/75",
+              "shadow-[0_0_14px_-8px_rgb(34_211_238_/_0.65)]",
+              "transition-colors hover:border-primary/45 hover:bg-primary/10 hover:text-primary",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45",
+              "disabled:pointer-events-none disabled:opacity-30",
+              "max-lg:size-11",
+            )}
+          >
+            <ChevronLeft className="size-3.5" aria-hidden />
+          </button>
+          <p className="font-mono text-[10px] tracking-[0.12em] text-muted-foreground tabular-nums uppercase">
+            {t("ui.insightPosition", {
+              current: safeIndex + 1,
+              total: ranked.length,
+            })}
+          </p>
+          <button
+            type="button"
+            aria-label={t("ui.nextInsight")}
+            disabled={safeIndex >= ranked.length - 1}
+            onClick={() => {
+              setActiveIndex((value) =>
+                Math.min(ranked.length - 1, value + 1),
+              );
+            }}
+            className={cn(
+              "inline-flex size-8 items-center justify-center rounded-sm",
+              "border border-primary/20 bg-[#05070d]/70 text-primary/75",
+              "shadow-[0_0_14px_-8px_rgb(34_211_238_/_0.65)]",
+              "transition-colors hover:border-primary/45 hover:bg-primary/10 hover:text-primary",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45",
+              "disabled:pointer-events-none disabled:opacity-30",
+              "max-lg:size-11",
+            )}
+          >
+            <ChevronRight className="size-3.5" aria-hidden />
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /**
  * Bottom-of-screen AI Strategic Copilot.
  * Translates the three engine-issued insight codes; never invents figures or conclusions.
@@ -199,12 +305,11 @@ export function AiCopilot({
   status,
   compact = false,
   className,
+  onRetry,
 }: AiCopilotProps) {
   const { t } = useLanguage();
   const reduceMotion = useReducedMotion();
   const stale = status === "stale";
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [pageKey, setPageKey] = useState("");
 
   const ranked =
     insights === null || insights.length === 0
@@ -212,15 +317,6 @@ export function AiCopilot({
       : sortBySeverity(insights).slice(0, 3);
 
   const runKey = insightsAnimationKey(ranked);
-
-  if (pageKey !== runKey) {
-    setPageKey(runKey);
-    setActiveIndex(0);
-  }
-
-  const safeIndex =
-    ranked.length === 0 ? 0 : Math.min(activeIndex, ranked.length - 1);
-  const activeInsight = ranked[safeIndex] ?? null;
 
   return (
     <div
@@ -246,95 +342,41 @@ export function AiCopilot({
         </div>
 
         {stale ? (
-          <p
+          <div
             role="status"
-            className="mb-3 rounded-md border border-status-warning/30 bg-status-warning/10 px-3 py-2 text-xs leading-relaxed text-status-warning"
+            className="mb-3 space-y-2 rounded-md border border-status-warning/30 bg-status-warning/10 px-3 py-2"
           >
-            {t("ui.copilotStale")}
-          </p>
+            <p className="text-xs leading-relaxed text-status-warning">
+              {t("ui.copilotStale")}
+            </p>
+            {onRetry ? (
+              <button
+                type="button"
+                onClick={onRetry}
+                className={cn(
+                  "inline-flex items-center rounded-md border border-primary/35",
+                  "bg-primary/10 px-2 py-1 font-mono text-[10px] tracking-[0.16em]",
+                  "text-primary uppercase",
+                  "transition-colors hover:border-primary/55 hover:bg-primary/15",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45",
+                )}
+              >
+                {t("ui.retryConnection")}
+              </button>
+            ) : null}
+          </div>
         ) : null}
 
         {ranked.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("ui.copilotEmpty")}</p>
         ) : compact ? (
-          <div className="space-y-3">
-            <AnimatePresence mode="wait" initial={false}>
-              {activeInsight ? (
-                <motion.div
-                  key={`${runKey}-${activeInsight.code}-${safeIndex}`}
-                  initial={reduceMotion ? false : { opacity: 0, x: 12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={reduceMotion ? undefined : { opacity: 0, x: -12 }}
-                  transition={
-                    reduceMotion
-                      ? { duration: 0 }
-                      : { duration: 0.22, ease: "easeOut" }
-                  }
-                  className="flex items-start gap-3"
-                  aria-live="polite"
-                >
-                  <SeverityIcon
-                    severity={activeInsight.severity}
-                    label={t(severityLabelKey(activeInsight.severity))}
-                  />
-                  <InsightRenderer
-                    insight={activeInsight}
-                    leverLabel={leverLabelForInsight(
-                      activeInsight,
-                      sensitivity,
-                      t,
-                    )}
-                    className="min-w-0 flex-1 text-sm leading-relaxed"
-                  />
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
-
-            {ranked.length > 1 ? (
-              <div className="flex items-center justify-between gap-2">
-                <button
-                  type="button"
-                  aria-label={t("ui.previousInsight")}
-                  disabled={safeIndex === 0}
-                  onClick={() => {
-                    setActiveIndex((value) => Math.max(0, value - 1));
-                  }}
-                  className={cn(
-                    "inline-flex min-h-11 min-w-11 items-center justify-center rounded-md",
-                    "border border-primary/25 text-primary/90",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45",
-                    "disabled:pointer-events-none disabled:opacity-35",
-                  )}
-                >
-                  <ChevronLeft className="size-4" aria-hidden />
-                </button>
-                <p className="font-mono text-[10px] tracking-[0.12em] text-muted-foreground tabular-nums uppercase">
-                  {t("ui.insightPosition", {
-                    current: safeIndex + 1,
-                    total: ranked.length,
-                  })}
-                </p>
-                <button
-                  type="button"
-                  aria-label={t("ui.nextInsight")}
-                  disabled={safeIndex >= ranked.length - 1}
-                  onClick={() => {
-                    setActiveIndex((value) =>
-                      Math.min(ranked.length - 1, value + 1),
-                    );
-                  }}
-                  className={cn(
-                    "inline-flex min-h-11 min-w-11 items-center justify-center rounded-md",
-                    "border border-primary/25 text-primary/90",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45",
-                    "disabled:pointer-events-none disabled:opacity-35",
-                  )}
-                >
-                  <ChevronRight className="size-4" aria-hidden />
-                </button>
-              </div>
-            ) : null}
-          </div>
+          <CompactInsightPager
+            key={runKey}
+            ranked={ranked}
+            runKey={runKey}
+            sensitivity={sensitivity}
+            reduceMotion={reduceMotion}
+          />
         ) : (
           <ul className="space-y-3" aria-live="polite">
             <AnimatePresence mode="popLayout" initial={false}>

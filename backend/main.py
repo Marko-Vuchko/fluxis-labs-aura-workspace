@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import hmac
 import logging
 import math
 import os
 import time
-from collections import defaultdict, deque
+from collections import deque
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import asdict
@@ -31,8 +32,12 @@ from backend.engine import ENGINE_VERSION, simulate
 # Configuration
 # ---------------------------------------------------------------------------
 MAX_BODY_BYTES = 4 * 1024
-RATE_LIMIT_REQUESTS = 60
-RATE_LIMIT_WINDOW_S = 60.0
+# Behind the Vercel BFF, request.client.host is shared egress - not per visitor.
+# Per-user limiting lives on the Next edge / WAF; this is a host overload guard.
+OVERLOAD_LIMIT_REQUESTS = int(os.getenv("AURA_OVERLOAD_LIMIT", "300"))
+OVERLOAD_LIMIT_WINDOW_S = 60.0
+SEED_MIN = 0
+SEED_MAX = 2_147_483_647
 MAX_CONCURRENT = int(os.getenv("AURA_MAX_CONCURRENT", "4"))
 AURA_ENV = os.getenv("AURA_ENV", "development").lower()
 IS_PRODUCTION = AURA_ENV == "production"
@@ -46,8 +51,8 @@ logger = logging.getLogger("aura")
 _started_at = time.perf_counter()
 _numpy_warmup_ms = 0.0
 _semaphore: asyncio.Semaphore | None = None
-_rate_buckets: dict[str, deque[float]] = defaultdict(deque)
-_rate_lock = asyncio.Lock()
+_overload_bucket: deque[float] = deque()
+_overload_lock = asyncio.Lock()
 
 
 def _allowed_hosts() -> list[str]:
@@ -97,7 +102,7 @@ class SimulationRequest(BaseModel):
     team_size: int = Field(default=6, ge=1, le=50)
     opex: float = Field(default=12_000.0, ge=0, le=100_000, allow_inf_nan=False)
     cash_reserve: float = Field(default=120_000.0, ge=0, le=500_000, allow_inf_nan=False)
-    seed: int | None = None
+    seed: int | None = Field(default=None, ge=SEED_MIN, le=SEED_MAX)
 
     @field_validator("ad_spend", "price", "opex", "cash_reserve", mode="after")
     @classmethod
@@ -129,7 +134,7 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
                 )
             if length > MAX_BODY_BYTES:
                 return JSONResponse(
-                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    status_code=status.HTTP_413_CONTENT_TOO_LARGE,
                     content={"detail": "Request body too large"},
                 )
 
@@ -137,33 +142,34 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
             body = await request.body()
             if len(body) > MAX_BODY_BYTES:
                 return JSONResponse(
-                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    status_code=status.HTTP_413_CONTENT_TOO_LARGE,
                     content={"detail": "Request body too large"},
                 )
 
         return await call_next(request)
 
 
-class RateLimitMiddleware(BaseHTTPMiddleware):
-    """In-memory sliding window: 60 requests per minute per IP."""
+class OverloadGuardMiddleware(BaseHTTPMiddleware):
+    """Global sliding window to protect the host when traffic arrives via one BFF IP."""
 
     async def dispatch(
         self,
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
-        ip = _client_ip(request)
         now = time.monotonic()
-        async with _rate_lock:
-            bucket = _rate_buckets[ip]
-            while bucket and (now - bucket[0]) > RATE_LIMIT_WINDOW_S:
-                bucket.popleft()
-            if len(bucket) >= RATE_LIMIT_REQUESTS:
+        async with _overload_lock:
+            while (
+                _overload_bucket
+                and (now - _overload_bucket[0]) > OVERLOAD_LIMIT_WINDOW_S
+            ):
+                _overload_bucket.popleft()
+            if len(_overload_bucket) >= OVERLOAD_LIMIT_REQUESTS:
                 return JSONResponse(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    content={"detail": "Rate limit exceeded"},
+                    content={"detail": "Service overloaded"},
                 )
-            bucket.append(now)
+            _overload_bucket.append(now)
         return await call_next(request)
 
 
@@ -193,7 +199,7 @@ app = FastAPI(
 # Middleware order: last added runs first on the request path.
 app.add_middleware(GZipMiddleware, minimum_size=256)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=_allowed_hosts())
-app.add_middleware(RateLimitMiddleware)
+app.add_middleware(OverloadGuardMiddleware)
 app.add_middleware(BodySizeLimitMiddleware)
 
 if not IS_PRODUCTION:
@@ -216,11 +222,22 @@ async def require_api_key(
     x_aura_key: str | None = Header(default=None, alias="X-Aura-Key"),
 ) -> None:
     secret = _api_secret()
-    if not secret or x_aura_key is None or x_aura_key != secret:
+    provided = x_aura_key or ""
+    # Constant-time compare; reject empty configured secret in all environments.
+    if not secret or not hmac.compare_digest(provided, secret):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Unauthorized",
         )
+
+
+def _validation_client_detail(exc: RequestValidationError) -> dict[str, str]:
+    """Log full validator output server-side; return a generic client body."""
+    logger.info(
+        "validation_rejected errors=%s",
+        _sanitize_for_json(jsonable_encoder(exc.errors())),
+    )
+    return {"detail": "Invalid request"}
 
 
 @app.exception_handler(RequestValidationError)
@@ -230,7 +247,7 @@ async def validation_exception_handler(
 ) -> JSONResponse:
     return JSONResponse(
         status_code=422,
-        content={"detail": _sanitize_for_json(jsonable_encoder(exc.errors()))},
+        content=_validation_client_detail(exc),
     )
 
 
@@ -247,7 +264,7 @@ async def unhandled_exception_handler(
     if isinstance(exc, RequestValidationError):
         return JSONResponse(
             status_code=422,
-            content={"detail": _sanitize_for_json(jsonable_encoder(exc.errors()))},
+            content=_validation_client_detail(exc),
         )
     logger.exception("unhandled_error type=%s", type(exc).__name__)
     return JSONResponse(

@@ -1,7 +1,7 @@
 "use client";
 
 import { OrbitControls } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Bloom, EffectComposer } from "@react-three/postprocessing";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -25,7 +25,12 @@ import {
 } from "./quality-manager";
 import type { SceneQuality } from "./scene-quality";
 import { SceneBackground } from "./scene-background";
+import {
+  isUsableWebGL2Context,
+  WEBGL_CONTEXT_ATTRIBUTES,
+} from "./webgl-support";
 import { useOrbitControlsEnabled } from "@/features/hud/orbit-gate";
+import { cn } from "@/lib/utils";
 
 declare global {
   interface Window {
@@ -44,42 +49,91 @@ export type SpatialCanvasProps = {
   className?: string;
   onContextLost?: () => void;
   onContextRestored?: () => void;
+  stale?: boolean;
 };
 
 const CAMERA_DISTANCE = 11;
 const CAMERA_ELEVATION_DEG = 20;
+const CAMERA_INTRO_MS = 900;
+const CAMERA_INTRO_DISTANCE = 16.5;
+const CAMERA_INTRO_AZIMUTH_DEG = 22;
 
-function initialCameraPosition(): [number, number, number] {
+function cameraPositionAt(
+  distance: number,
+  azimuthDeg = 0,
+): [number, number, number] {
   const elev = (CAMERA_ELEVATION_DEG * Math.PI) / 180;
+  const az = (azimuthDeg * Math.PI) / 180;
+  const horiz = Math.cos(elev) * distance;
   return [
-    0,
-    Math.sin(elev) * CAMERA_DISTANCE,
-    Math.cos(elev) * CAMERA_DISTANCE,
+    Math.sin(az) * horiz,
+    Math.sin(elev) * distance,
+    Math.cos(az) * horiz,
   ];
+}
+
+function CameraIntro({ onComplete }: { onComplete: () => void }) {
+  const { camera } = useThree();
+  const elapsedRef = useRef(0);
+  const doneRef = useRef(false);
+  const onCompleteRef = useRef(onComplete);
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
+  useFrame((_, delta) => {
+    if (doneRef.current) {
+      return;
+    }
+    elapsedRef.current += delta * 1000;
+    const t = Math.min(1, elapsedRef.current / CAMERA_INTRO_MS);
+    const eased = 1 - (1 - t) ** 3;
+    const distance =
+      CAMERA_INTRO_DISTANCE + (CAMERA_DISTANCE - CAMERA_INTRO_DISTANCE) * eased;
+    const azimuth = CAMERA_INTRO_AZIMUTH_DEG * (1 - eased);
+    const [x, y, z] = cameraPositionAt(distance, azimuth);
+    camera.position.set(x, y, z);
+    camera.lookAt(0, 0, 0);
+    if (t >= 1) {
+      doneRef.current = true;
+      queueMicrotask(() => {
+        onCompleteRef.current();
+      });
+    }
+  });
+
+  return null;
 }
 
 function CameraRig({ reduceMotion }: { reduceMotion: boolean }) {
   const [userStopped, setUserStopped] = useState(false);
+  const [introDone, setIntroDone] = useState(reduceMotion);
   const orbitEnabled = useOrbitControlsEnabled();
-  const autoRotate = !reduceMotion && !userStopped && orbitEnabled;
+  const autoRotate = !reduceMotion && !userStopped && orbitEnabled && introDone;
 
   return (
-    <OrbitControls
-      makeDefault
-      enabled={orbitEnabled}
-      enablePan={false}
-      enableDamping
-      dampingFactor={0.06}
-      minPolarAngle={Math.PI * 0.18}
-      maxPolarAngle={Math.PI * 0.52}
-      minDistance={7}
-      maxDistance={26}
-      autoRotate={autoRotate}
-      autoRotateSpeed={0.35}
-      onStart={() => {
-        setUserStopped(true);
-      }}
-    />
+    <>
+      {reduceMotion || introDone ? null : (
+        <CameraIntro onComplete={() => setIntroDone(true)} />
+      )}
+      <OrbitControls
+        makeDefault
+        enabled={orbitEnabled && introDone}
+        enablePan={false}
+        enableDamping
+        dampingFactor={0.12}
+        minPolarAngle={Math.PI * 0.18}
+        maxPolarAngle={Math.PI * 0.52}
+        minDistance={7}
+        maxDistance={26}
+        autoRotate={autoRotate}
+        autoRotateSpeed={0.35}
+        onStart={() => {
+          setUserStopped(true);
+        }}
+      />
+    </>
   );
 }
 
@@ -93,6 +147,7 @@ function SceneContent({
   quality,
   reduceMotion,
   lockedNodeId,
+  effectsEnabled,
   onToggleLock,
 }: {
   nodes: readonly NodeState[] | null;
@@ -104,6 +159,7 @@ function SceneContent({
   quality: SceneQuality;
   reduceMotion: boolean;
   lockedNodeId: NodeId | null;
+  effectsEnabled: boolean;
   onToggleLock: (id: NodeId) => void;
 }) {
   const positionsRef = useNodePositions(nodes);
@@ -166,7 +222,7 @@ function SceneContent({
 
       <CameraRig reduceMotion={reduceMotion} />
 
-      {quality.bloomEnabled ? (
+      {quality.bloomEnabled && effectsEnabled ? (
         <EffectComposer multisampling={0} enableNormalPass={false}>
           <Bloom
             luminanceThreshold={0.85}
@@ -194,10 +250,19 @@ export function SpatialCanvas({
   className,
   onContextLost,
   onContextRestored,
+  stale = false,
 }: SpatialCanvasProps) {
   const [quality, setQuality] = useState<SceneQuality>(DEFAULT_SCENE_QUALITY);
   const [lockedNodeId, setLockedNodeId] = useState<NodeId | null>(null);
-  const cameraPosition = useMemo(() => initialCameraPosition(), []);
+  const [effectsEnabled, setEffectsEnabled] = useState(false);
+  const cameraPosition = useMemo(
+    () =>
+      cameraPositionAt(
+        reduceMotion ? CAMERA_DISTANCE : CAMERA_INTRO_DISTANCE,
+        reduceMotion ? 0 : CAMERA_INTRO_AZIMUTH_DEG,
+      ),
+    [reduceMotion],
+  );
   const contextCleanupRef = useRef<(() => void) | null>(null);
   const onContextLostRef = useRef(onContextLost);
   const onContextRestoredRef = useRef(onContextRestored);
@@ -247,7 +312,13 @@ export function SpatialCanvas({
   }, []);
 
   return (
-    <div className={className ?? "h-full w-full"}>
+    <div
+      className={cn(
+        className ?? "h-full w-full",
+        "transition-[filter] duration-500",
+        stale && "brightness-[0.78] saturate-[0.55]",
+      )}
+    >
       <Canvas
         dpr={quality.dpr}
         camera={{
@@ -256,13 +327,16 @@ export function SpatialCanvas({
           near: 0.1,
           far: 120,
         }}
-        gl={{
-          antialias: true,
-          alpha: true,
-          powerPreference: "high-performance",
-        }}
+        gl={{ ...WEBGL_CONTEXT_ATTRIBUTES }}
+        resize={{ scroll: false }}
         style={{ width: "100%", height: "100%", display: "block" }}
         onCreated={({ gl }) => {
+          if (!isUsableWebGL2Context(gl.getContext())) {
+            onContextLostRef.current?.();
+            return;
+          }
+
+          setEffectsEnabled(true);
           gl.setClearColor("#05070D", 1);
           const canvas = gl.domElement;
 
@@ -307,6 +381,7 @@ export function SpatialCanvas({
           quality={quality}
           reduceMotion={reduceMotion}
           lockedNodeId={lockedNodeId}
+          effectsEnabled={effectsEnabled}
           onToggleLock={handleToggleLock}
         />
       </Canvas>

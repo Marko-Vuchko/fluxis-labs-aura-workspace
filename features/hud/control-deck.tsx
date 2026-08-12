@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown, ChevronUp } from "lucide-react";
 import {
   useId,
   useState,
@@ -157,6 +158,19 @@ function ParamSlider({
     }
   };
 
+  const nudge = (direction: 1 | -1) => {
+    const parsed = Number(text.replace(/,/g, ""));
+    const source = Number.isFinite(parsed) ? parsed : value;
+    const next = clampToRange(paramKey, source + direction * range.step);
+    setDraft(null);
+    setInvalid(false);
+    if (next !== value) {
+      onValueChange(next);
+      onTone(next);
+    }
+    onCommit();
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex items-end justify-between gap-3">
@@ -171,37 +185,84 @@ function ParamSlider({
           >
             {liveLabel}
           </span>
-          <input
-            id={inputId}
-            type="number"
-            inputMode="decimal"
-            min={range.min}
-            max={range.max}
-            step={range.step}
-            value={text}
-            disabled={disabled}
-            aria-labelledby={labelId}
-            aria-invalid={invalid}
-            aria-describedby={`${inputId}-hint`}
-            onFocus={() => {
-              setDraft(String(value));
-            }}
-            onChange={(event) => {
-              setDraft(event.target.value);
-              setInvalid(false);
-            }}
-            onBlur={commitText}
-            onKeyDown={onInputKeyDown}
+          <div
             className={cn(
-              "h-7 w-[5.5rem] rounded-md border bg-background/50 px-2",
-              "font-mono text-xs tabular-nums text-foreground",
-              "border-primary/25 outline-none transition-colors",
-              "focus-visible:border-primary/60 focus-visible:ring-2 focus-visible:ring-primary/25",
-              "max-lg:h-11 max-lg:w-[6.5rem] max-lg:text-sm",
+              "flex overflow-hidden rounded-md border bg-background/50",
+              "border-primary/25 transition-colors",
+              "focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/25",
               invalid && "border-destructive/70 ring-1 ring-destructive/30",
               disabled && "opacity-50",
             )}
-          />
+          >
+            <input
+              id={inputId}
+              type="number"
+              inputMode="decimal"
+              min={range.min}
+              max={range.max}
+              step={range.step}
+              value={text}
+              disabled={disabled}
+              aria-labelledby={labelId}
+              aria-invalid={invalid}
+              aria-describedby={`${inputId}-hint`}
+              onFocus={() => {
+                setDraft(String(value));
+              }}
+              onChange={(event) => {
+                setDraft(event.target.value);
+                setInvalid(false);
+              }}
+              onBlur={commitText}
+              onKeyDown={onInputKeyDown}
+              className={cn(
+                "h-7 w-[4.75rem] border-0 bg-transparent px-2",
+                "font-mono text-xs tabular-nums text-foreground outline-none",
+                "max-lg:h-11 max-lg:w-[5.75rem] max-lg:text-sm",
+              )}
+            />
+            <div
+              className="flex w-5 flex-col border-l border-primary/20 max-lg:w-8"
+              onPointerDown={orbitGuardPointerDown}
+            >
+              <button
+                type="button"
+                tabIndex={-1}
+                disabled={disabled || value >= range.max}
+                aria-label={t("ui.increaseParam", { label })}
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  nudge(1);
+                }}
+                className={cn(
+                  "flex flex-1 items-center justify-center text-primary/55",
+                  "transition-colors hover:bg-primary/10 hover:text-primary",
+                  "focus-visible:outline-none focus-visible:bg-primary/15",
+                  "disabled:pointer-events-none disabled:opacity-30",
+                )}
+              >
+                <ChevronUp className="size-2.5 max-lg:size-3.5" aria-hidden />
+              </button>
+              <button
+                type="button"
+                tabIndex={-1}
+                disabled={disabled || value <= range.min}
+                aria-label={t("ui.decreaseParam", { label })}
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  nudge(-1);
+                }}
+                className={cn(
+                  "flex flex-1 items-center justify-center border-t border-primary/20 text-primary/55",
+                  "transition-colors hover:bg-primary/10 hover:text-primary",
+                  "focus-visible:outline-none focus-visible:bg-primary/15",
+                  "disabled:pointer-events-none disabled:opacity-30",
+                )}
+              >
+                <ChevronDown className="size-2.5 max-lg:size-3.5" aria-hidden />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       <p id={`${inputId}-hint`} className="sr-only">
@@ -287,7 +348,7 @@ export function ControlDeck({
       data-tour="controlDeck"
       className={cn(
         "relative w-full max-w-sm overflow-hidden rounded-xl",
-        "border border-primary/20 bg-[#070b14]/78 p-4 shadow-[0_0_40px_-24px_rgb(34_211_238_/_0.55)]",
+        "border border-primary/18 bg-[#070b14]/78 p-4 shadow-[0_0_28px_-22px_rgb(34_211_238_/_0.32)]",
         "backdrop-blur-md",
         className,
       )}

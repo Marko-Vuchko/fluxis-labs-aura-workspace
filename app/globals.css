@@ -130,16 +130,58 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(34 211 238 / 42%) rgb(5 7 13 / 55%);
   }
+
   body {
     @apply bg-background text-foreground;
   }
+
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+
   html {
     @apply font-sans;
+    color-scheme: dark;
+    scroll-behavior: auto;
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: rgb(5 7 13 / 50%);
+    border-radius: 999px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: rgb(34 211 238 / 38%);
+    border-radius: 999px;
+    border: 1px solid rgb(34 211 238 / 18%);
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: rgb(34 211 238 / 62%);
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    appearance: none;
+    margin: 0;
+  }
+
+  input[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
   }
 
   :focus-visible {

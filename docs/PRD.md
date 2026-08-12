@@ -213,12 +213,14 @@ Parametar `seed` je opcion i postoji isključivo zbog `RESEED` funkcije iz FR-2.
 ```jsonc
 {
   "meta": {
-    "engine_version": "1.0.0",
+    "engine_version": "1.1.0",
     "iterations": 1000,
     "months": 12,
     "seed": 20260810,
     "compute_ms": 41.7,
-    "currency": "USD"
+    "currency": "USD",
+    "clients_per_head": 12,
+    "cost_per_head": 2500.0
   },
   "annual": {
     "revenue":     [p10, p50, p90],
@@ -238,7 +240,10 @@ Parametar `seed` je opcion i postoji isključivo zbog `RESEED` funkcije iz FR-2.
       "cash": 131204.5,
       "runway_months": null,           // null = PROFITABLE
       "risk": { "score": 34.2, "components": [0.12, 0.00, 0.41, 0.28] },
-      "nodes": [[health, x, y, z], ...]  // tacno 7, redosled iz 5.5
+      "nodes": [[health, x, y, z], ...],  // tacno 7, redosled iz 5.5
+      "insights": [                        // tacno 3; prate ovaj mesec
+        { "code": "CAP_UNDERUSED", "severity": "info", "params": { "capacity_used": 0.12 } }
+      ]
     }
   ],
   "histogram": {
@@ -255,12 +260,12 @@ Parametar `seed` je opcion i postoji isključivo zbog `RESEED` funkcije iz FR-2.
 }
 ```
 
-Svi brojevi sa pokretnim zarezom se zaokružuju na dve decimale pre serijalizacije. Uključen je `GZipMiddleware`. `insights` sadrži tačno tri stavke, sortirane po ozbiljnosti.
+Svi brojevi sa pokretnim zarezom se zaokružuju na dve decimale pre serijalizacije. Uključen je `GZipMiddleware`. `insights` sadrži tačno tri stavke, sortirane po ozbiljnosti. Uvidi žive i na svakom mesecu (`months[i].insights`); top-level `insights` je alias meseca 12.
 
 ### 6.3 `GET /health` - odgovor
 
 ```json
-{ "status": "ok", "engine_version": "1.0.0", "uptime_s": 1234.5, "numpy_warmup_ms": 18.3 }
+{ "status": "ok", "engine_version": "1.1.0", "uptime_s": 1234.5, "numpy_warmup_ms": 18.3 }
 ```
 
 Boot Screen ispisuje ove vrednosti kao stvarnu telemetriju, ne kao naraciju.
@@ -341,6 +346,8 @@ Ovo nije ukras nego dokaz. Broj iteracija je namerno fiksiran na 1000 i nije izl
 
 Detekcija WebGL-a pre montiranja scene i elegantan zamenski 2D panel koji zadržava sve brojke iz Pythona, plus oporavak na `onContextLost`. Granularni Error Boundary oko scene i oko svakog panela. Poštovanje `prefers-reduced-motion` gasi auto-rotaciju, čestice i pulsiranje, ali zadržava zvuk i 3D prikaz.
 
+3D scena je pointer-first (orbit, hover, klik za zaključavanje čvora). To je prihvatljivo jer su sve brojke dostupne preko HUD-a (Control Deck, KPI/Risk, Copilot, scrubber), a kada WebGL nije dostupan SceneFallback je potpuno tastaturno dostupan. Otvorena node detail kartica ima focus trap i Escape.
+
 ### FR-11 Guided tour
 
 Četiri koraka (scena, Control Deck, Copilot, presetovi) sa isticanjem elementa. Pokreće se tek posle `ENTER AURA` i posle što je prva simulacija već popunila scenu. Preskočiv, pamti se u `localStorage`.
@@ -368,7 +375,7 @@ Nijedna funkcija se ne uklanja i nijedna brojka se ne skriva; menja se isključi
 | Vercel platforma | Automatska DDoS mitigacija L3/L4/L7 (besplatna, bez konfiguracije, blokiran saobraćaj se ne naplaćuje) |
 | Vercel WAF | Rate limit na `/api` po IP-u, blokada exploit sondi (`/wp-admin`, `/.env`, `/.git/config`, `/phpmyadmin`), odbijanje nekorišćenih metoda, managed rulesets. Postupni rollout: `log`, pregled saobraćaja, `deny` u preview-u, pa produkcija. Publish pokreće vlasnik naloga, nikada agent |
 | Botovi | Vercel BotID na `basic` nivou nad `/api/simulate`, plus provera `Origin` i `Sec-Fetch-Site` |
-| Zaglavlja (`proxy.ts`) | CSP sa nonce i `strict-dynamic` (`unsafe-eval` samo u dev-u), HSTS preload, `nosniff`, `frame-ancestors 'none'`, `Referrer-Policy`, `Permissions-Policy`, COOP, CORP, `upgrade-insecure-requests`, `poweredByHeader: false` |
+| Zaglavlja (`proxy.ts`) | CSP sa nonce i `strict-dynamic` (`unsafe-eval` samo u dev-u), HSTS preload, `nosniff`, `X-Frame-Options: DENY` uz `frame-ancestors 'none'`, `Referrer-Policy`, `Permissions-Policy`, COOP, CORP, `upgrade-insecure-requests`, `poweredByHeader: false` |
 | Route Handler | Zod validacija ulaza i izlaza, server-only `AURA_API_URL` i `AURA_API_SECRET`, timeout, cap na veličinu tela, generičke poruke greške |
 | FastAPI | Pydantic `extra="forbid"` i 422, odbijanje `NaN` i beskonačnih vrednosti, provera deljene tajne, `TrustedHostMiddleware`, rate limit 60/min po IP, globalno ograničenje konkurentnosti, limit veličine tela, globalni exception handler bez stack trace-a, ugašeni `/docs`, `/redoc` i `/openapi.json` u produkciji, logovanje sa heširanim IP-om |
 | Lanac snabdevanja | Tačni pinovi, commit-ovan lockfile, `npm ci`, `npm audit`, `pip-audit`, Dependabot, GitHub secret scanning, akcije zakovane na SHA, zaštita `main` grane, `SECURITY.md` |
@@ -384,7 +391,9 @@ Broj Monte Carlo iteracija je fiksan, pa napadač ne može da naruči skuplji po
 
 ### 8.3 Pristupačnost
 
-`prefers-reduced-motion`, fokus prstenovi, tastaturna kontrola svih slajdera, aria labele.
+`prefers-reduced-motion`, fokus prstenovi, tastaturna kontrola svih slajdera, aria labele. Focus trap i restore fokusa na guided tour, mobile Control Deck drawer i node detail kartici. Live region (`role="status"`) za COMPUTING / LINK LOST / STALE. Risk barovi sa `role="progressbar"` i tekstualnim `aria-valuetext` vrednostima. Skip link ka `#aura-controls` i landmark regioni (scena, control deck, metrike, kopilot).
+
+3D scena nije keyboard-first. Prihvatljivo uz jasan fallback: HUD izlaže iste brojke tastaturom, a WebGL nedostupnost vodi na 2D SceneFallback. Dokumentovano u FR-10.
 
 ### 8.4 Kvalitet koda
 

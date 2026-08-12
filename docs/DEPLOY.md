@@ -64,6 +64,7 @@ U Vercel Dashboard -> Project -> Settings -> Environment Variables, za **Product
 | --- | --- | --- |
 | `AURA_API_URL` | `https://aura-workspace-api.onrender.com` | bez trailing slash; isti host kao Render |
 | `AURA_API_SECRET` | ista vrednost kao na Renderu | nikad u git, nikad `NEXT_PUBLIC_` |
+| `AURA_API_URL_ALLOWED_HOSTS` | `aura-workspace-api.onrender.com` | opciono; SSRF allowlist za `AURA_API_URL`. Default je isti Render host. Ako Render dodeli drugi hostname, upiši ga ovde. |
 | `NEXT_PUBLIC_SITE_URL` | produkcioni origin, npr. `https://<project>.vercel.app` | opciono, za metadata |
 
 Development može da ostane na `.env.local` (`http://127.0.0.1:8000` + lokalni secret).

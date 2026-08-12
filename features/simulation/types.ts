@@ -91,6 +91,8 @@ export type MonthSnapshot = {
   risk: RiskSnapshot;
   /** Exactly 7 nodes in NODE_ORDER; length enforced at the API boundary. */
   nodes: readonly NodeState[];
+  /** Exactly 3 insights for this month; length enforced at the API boundary. */
+  insights: readonly Insight[];
 };
 
 export type SimulationMeta = {
@@ -100,9 +102,9 @@ export type SimulationMeta = {
   seed: number;
   compute_ms: number;
   currency: string;
-  /** Optional engine capacity economics (PRD 5.1). */
-  clients_per_head?: number;
-  cost_per_head?: number;
+  /** Engine capacity economics (PRD 5.1 / FR-2) - always from meta, never invented. */
+  clients_per_head: number;
+  cost_per_head: number;
 };
 
 export type AnnualSummary = {
@@ -136,7 +138,7 @@ export type SimulationOutput = {
   months: readonly MonthSnapshot[];
   histogram: Histogram;
   sensitivity: readonly SensitivityItem[];
-  /** Exactly 3 insights; length enforced at the API boundary. */
+  /** Alias of months[11].insights (PRD 6.2). Copilot reads the selected month. */
   insights: readonly Insight[];
 };
 
@@ -154,6 +156,15 @@ export type SimulationStatus =
   | "stale"
   | "error";
 
+/** Stable client error codes - localize at the UI boundary, never hardcode EN copy here. */
+import type { ApiErrorCode } from "@/lib/i18n/api-errors";
+export type { ApiErrorCode };
+
 export type ApiSuccess<T> = { ok: true; data: T };
-export type ApiFailure = { ok: false; error: string };
+export type ApiFailure = {
+  ok: false;
+  error: ApiErrorCode;
+  /** Optional HTTP status for messages that interpolate {status}. */
+  status?: number;
+};
 export type ApiResult<T> = ApiSuccess<T> | ApiFailure;

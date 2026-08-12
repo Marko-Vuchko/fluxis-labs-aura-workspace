@@ -52,7 +52,8 @@ DEFAULT_CASH_RESERVE = 120_000.0
 # ---------------------------------------------------------------------------
 # Aggregation / output contract constants
 # ---------------------------------------------------------------------------
-ENGINE_VERSION: Final[str] = "1.0.0"
+# Bumped when MonthSnapshot gained per-month insights (PRD FR-5).
+ENGINE_VERSION: Final[str] = "1.1.0"
 CURRENCY: Final[str] = "USD"
 HISTOGRAM_BINS: Final[int] = 30
 HISTOGRAM_METRIC: Final[str] = "annual_profit"
@@ -640,6 +641,28 @@ INSIGHT_RULES: Final[tuple[InsightFn, ...]] = (
 )
 
 
+INSIGHT_PAD_RULES: Final[tuple[InsightFn, ...]] = (
+    _insight_rec_second_lever,
+    _insight_mkt_efficient,
+    _insight_rec_top_lever,
+)
+
+
+def _pad_insight(ctx: dict[str, object], used: set[str]) -> InsightItem | None:
+    """Fill to INSIGHT_LIMIT with the weakest catalog info codes (Zod .length(3))."""
+    for rule in INSIGHT_PAD_RULES:
+        item = rule(**ctx)
+        if item is not None and item.code not in used:
+            return item
+    if "MKT_EFFICIENT" not in used:
+        return InsightItem(
+            code="MKT_EFFICIENT",
+            severity="info",
+            params={"reach": _r2(float(ctx["reach"]))},
+        )
+    return None
+
+
 def _select_insights(ctx: dict[str, object]) -> list[InsightItem]:
     fired: list[InsightItem] = []
     for rule in INSIGHT_RULES:
@@ -647,7 +670,15 @@ def _select_insights(ctx: dict[str, object]) -> list[InsightItem]:
         if item is not None:
             fired.append(item)
     fired.sort(key=lambda i: (SEVERITY_ORDER[i.severity], i.code))
-    return fired[:INSIGHT_LIMIT]
+    selected = fired[:INSIGHT_LIMIT]
+    used = {item.code for item in selected}
+    while len(selected) < INSIGHT_LIMIT:
+        pad = _pad_insight(ctx, used)
+        if pad is None:
+            break
+        selected.append(pad)
+        used.add(pad.code)
+    return selected
 
 
 def simulate(
@@ -753,8 +784,6 @@ def simulate(
     capacity_used_p50: list[float] = []
     churn_p50_list: list[float] = []
     profit_p50_list: list[float] = []
-    conv_month_p50 = float(pd.Series(conv[:, -1]).quantile(0.50))
-    new_cust_month_p50 = float(pd.Series(new_customers.mean(axis=1)).quantile(0.50))
     reach_nominal = float(ad_spend) / (float(ad_spend) + HALF_SATURATION)
 
     for month_idx in range(MONTHS):
@@ -775,6 +804,8 @@ def simulate(
         cash_p50 = _r2(float(cash_s.quantile(0.50)))
         profit_p50 = prof_pct[1]
         runway = _runway_months(cash_p50, profit_p50)
+        conv_p50 = float(pd.Series(conv[:, month_idx]).quantile(0.50))
+        new_customers_p50 = float(pd.Series(new_customers[:, month_idx]).quantile(0.50))
 
         risk = _risk_for_month(
             profit[:, month_idx],
@@ -786,7 +817,7 @@ def simulate(
         mkt_h, sales_h, support_h, ops_h, profit_h, churn_h, cash_h = _month_healths(
             reach=reach_nominal,
             price=float(price),
-            conv_p50=float(pd.Series(conv[:, month_idx]).quantile(0.50)),
+            conv_p50=conv_p50,
             capacity_used_p50=used_p50,
             churn_p50=churn_p50,
             margin_p50=margin_p50,
@@ -807,6 +838,25 @@ def simulate(
         churn_p50_list.append(churn_p50)
         profit_p50_list.append(profit_p50)
 
+        month_insights = _select_insights(
+            {
+                "capacity_used": list(capacity_used_p50),
+                "churn_rates": list(churn_p50_list),
+                "price": float(price),
+                "conv_p50": conv_p50,
+                "margin_p50": margin_p50,
+                "sensitivity": sensitivity,
+                "reach": reach_nominal,
+                "ad_spend": float(ad_spend),
+                "risk_components_last": risk.components,
+                "new_customers_p50": new_customers_p50,
+                "churn_p50": churn_p50,
+                "runway_last": runway,
+                "profits_p50": list(profit_p50_list),
+                "loss_prob_last": risk.components[0],
+            }
+        )
+
         month_frames.append(
             MonthSnapshot(
                 index=month_idx + 1,
@@ -820,27 +870,11 @@ def simulate(
                 runway_months=runway,
                 risk=risk,
                 nodes=nodes,
+                insights=month_insights,
             )
         )
 
-    insights = _select_insights(
-        {
-            "capacity_used": capacity_used_p50,
-            "churn_rates": churn_p50_list,
-            "price": float(price),
-            "conv_p50": conv_month_p50,
-            "margin_p50": month_frames[-1].margin,
-            "sensitivity": sensitivity,
-            "reach": reach_nominal,
-            "ad_spend": float(ad_spend),
-            "risk_components_last": month_frames[-1].risk.components,
-            "new_customers_p50": new_cust_month_p50,
-            "churn_p50": churn_p50_list[-1],
-            "runway_last": month_frames[-1].runway_months,
-            "profits_p50": profit_p50_list,
-            "loss_prob_last": month_frames[-1].risk.components[0],
-        }
-    )
+    insights = month_frames[-1].insights
 
     compute_ms = _r2((time.perf_counter() - t0) * 1000.0)
     return SimulationResult(
@@ -851,6 +885,8 @@ def simulate(
             seed=used_seed,
             compute_ms=compute_ms,
             currency=CURRENCY,
+            clients_per_head=CLIENTS_PER_HEAD,
+            cost_per_head=_r2(COST_PER_HEAD),
         ),
         annual=annual,
         months=month_frames,

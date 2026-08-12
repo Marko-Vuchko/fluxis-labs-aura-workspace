@@ -1,3 +1,6 @@
+"use client";
+
+import { useLanguage } from "@/lib/i18n/language-provider";
 import { cn } from "@/lib/utils";
 
 type ArchitectureDiagramProps = {
@@ -12,6 +15,8 @@ export function ArchitectureDiagram({
   className,
   caption,
 }: ArchitectureDiagramProps) {
+  const { t } = useLanguage();
+
   return (
     <figure className={cn("space-y-3", className)}>
       <svg
@@ -48,7 +53,7 @@ export function ArchitectureDiagram({
             fontSize="12"
             fontFamily="ui-sans-serif, system-ui, sans-serif"
           >
-            Browser
+            {t("about.diagramBrowser")}
           </text>
           <text
             x="136"
@@ -58,7 +63,7 @@ export function ArchitectureDiagram({
             fontSize="16"
             fontFamily="ui-sans-serif, system-ui, sans-serif"
           >
-            HUD + 3D scene
+            {t("about.diagramHudScene")}
           </text>
           <text
             x="136"
@@ -68,7 +73,7 @@ export function ArchitectureDiagram({
             fontSize="13"
             fontFamily="ui-monospace, monospace"
           >
-            useSimulation
+            {t("about.diagramUseSimulation")}
           </text>
         </g>
 
@@ -100,7 +105,7 @@ export function ArchitectureDiagram({
             fontSize="12"
             fontFamily="ui-sans-serif, system-ui, sans-serif"
           >
-            Vercel
+            {t("about.diagramVercel")}
           </text>
           <text
             x="455"
@@ -110,7 +115,7 @@ export function ArchitectureDiagram({
             fontSize="15"
             fontFamily="ui-sans-serif, system-ui, sans-serif"
           >
-            DDoS + WAF + BotID
+            {t("about.diagramEdge")}
           </text>
           <text
             x="455"
@@ -120,7 +125,7 @@ export function ArchitectureDiagram({
             fontSize="13"
             fontFamily="ui-monospace, monospace"
           >
-            proxy.ts CSP nonce
+            {t("about.diagramProxyCsp")}
           </text>
           <text
             x="455"
@@ -130,7 +135,7 @@ export function ArchitectureDiagram({
             fontSize="13"
             fontFamily="ui-monospace, monospace"
           >
-            Route Handler + Zod
+            {t("about.diagramRouteZod")}
           </text>
         </g>
 
@@ -161,7 +166,7 @@ export function ArchitectureDiagram({
             fontSize="12"
             fontFamily="ui-sans-serif, system-ui, sans-serif"
           >
-            Render Free
+            {t("about.diagramRender")}
           </text>
           <text
             x="780"
@@ -171,7 +176,7 @@ export function ArchitectureDiagram({
             fontSize="15"
             fontFamily="ui-sans-serif, system-ui, sans-serif"
           >
-            FastAPI + guards
+            {t("about.diagramFastapi")}
           </text>
           <text
             x="780"
@@ -181,7 +186,7 @@ export function ArchitectureDiagram({
             fontSize="13"
             fontFamily="ui-monospace, monospace"
           >
-            1000 × 12 months
+            {t("about.diagramMonteCarlo")}
           </text>
         </g>
       </svg>

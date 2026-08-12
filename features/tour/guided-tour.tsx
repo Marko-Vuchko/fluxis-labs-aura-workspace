@@ -5,16 +5,29 @@ import {
   useEffect,
   useId,
   useLayoutEffect,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useLanguage } from "@/lib/i18n/language-provider";
 import { cn } from "@/lib/utils";
 
 export const TOUR_STORAGE_KEY = "aura.tour.completed";
 const TOUR_EVENT = "aura-tour-change";
+
+/** Mobile Control Deck listens for these to reveal tour targets. */
+export const MOBILE_DECK_OPEN_EVENT = "aura-mobile-deck-open";
+export const MOBILE_DECK_CLOSE_EVENT = "aura-mobile-deck-close";
+
+/** In-memory flag so Skip still closes the tour if localStorage is unavailable. */
+let memoryTourCompleted = false;
+/** Bumped on restart so a remounted session begins at step 1. */
+let tourSession = 0;
+/** True while the guided tour dialog is mounted (focus-trap coordination). */
+let tourUiActive = false;
 
 export type TourStepId = "scene" | "controlDeck" | "copilot" | "presets";
 
@@ -31,6 +44,8 @@ type TourStep = {
     | "tour.step2Body"
     | "tour.step3Body"
     | "tour.step4Body";
+  /** When true, open the mobile Control Deck drawer so the target exists in the DOM. */
+  requiresMobileDeck?: boolean;
 };
 
 const TOUR_STEPS: readonly TourStep[] = [
@@ -45,6 +60,7 @@ const TOUR_STEPS: readonly TourStep[] = [
     selector: '[data-tour="controlDeck"]',
     titleKey: "tour.step2Title",
     bodyKey: "tour.step2Body",
+    requiresMobileDeck: true,
   },
   {
     id: "copilot",
@@ -57,6 +73,7 @@ const TOUR_STEPS: readonly TourStep[] = [
     selector: '[data-tour="presets"]',
     titleKey: "tour.step4Title",
     bodyKey: "tour.step4Body",
+    requiresMobileDeck: true,
   },
 ] as const;
 
@@ -73,6 +90,9 @@ type HighlightRect = {
 };
 
 function readTourCompleted(): boolean {
+  if (memoryTourCompleted) {
+    return true;
+  }
   if (typeof window === "undefined") {
     return true;
   }
@@ -98,12 +118,46 @@ function subscribeTour(onStoreChange: () => void): () => void {
 }
 
 function persistTourCompleted(): void {
+  memoryTourCompleted = true;
   try {
     window.localStorage.setItem(TOUR_STORAGE_KEY, "1");
   } catch {
-    // Ignore storage failures; tour simply will not persist.
+    // Ignore storage failures; memory flag still closes this session.
   }
   window.dispatchEvent(new Event(TOUR_EVENT));
+}
+
+/** Clears the completed flag so the guided tour can run again. */
+export function restartTour(): void {
+  memoryTourCompleted = false;
+  tourSession += 1;
+  try {
+    window.localStorage.removeItem(TOUR_STORAGE_KEY);
+  } catch {
+    // Ignore storage failures; in-memory listeners still update via event.
+  }
+  window.dispatchEvent(new Event(TOUR_EVENT));
+}
+
+function readTourSession(): number {
+  return tourSession;
+}
+
+export function useTourCompleted(): boolean {
+  return useSyncExternalStore(subscribeTour, readTourCompleted, () => true);
+}
+
+/** True while the guided tour UI is on screen (not merely incomplete). */
+export function useTourUiActive(): boolean {
+  return useSyncExternalStore(
+    subscribeTour,
+    () => tourUiActive,
+    () => false,
+  );
+}
+
+function useTourSession(): number {
+  return useSyncExternalStore(subscribeTour, readTourSession, () => 0);
 }
 
 function readHighlightRect(selector: string): HighlightRect | null {
@@ -112,6 +166,9 @@ function readHighlightRect(selector: string): HighlightRect | null {
     return null;
   }
   const box = el.getBoundingClientRect();
+  if (box.width < 2 || box.height < 2) {
+    return null;
+  }
   const pad = 10;
   return {
     top: Math.max(8, box.top - pad),
@@ -121,28 +178,43 @@ function readHighlightRect(selector: string): HighlightRect | null {
   };
 }
 
+function syncMobileDeckForStep(step: TourStep): void {
+  if (step.requiresMobileDeck) {
+    window.dispatchEvent(new Event(MOBILE_DECK_OPEN_EVENT));
+  } else {
+    window.dispatchEvent(new Event(MOBILE_DECK_CLOSE_EVENT));
+  }
+}
+
 /**
  * Four-step spotlight tour. Skippable; remembered in localStorage.
  */
 export function GuidedTour({ active }: GuidedTourProps) {
+  const completed = useTourCompleted();
+  const session = useTourSession();
+  const open = active && !completed;
+
+  if (!open) {
+    return null;
+  }
+
+  return <GuidedTourSession key={session} />;
+}
+
+function GuidedTourSession() {
   const { t } = useLanguage();
   const titleId = useId();
-  const completed = useSyncExternalStore(
-    subscribeTour,
-    readTourCompleted,
-    () => true,
-  );
-  const [dismissed, setDismissed] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const nextButtonRef = useRef<HTMLButtonElement>(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [rect, setRect] = useState<HighlightRect | null>(null);
 
-  const open = active && !completed && !dismissed;
   const step = TOUR_STEPS[stepIndex] ?? TOUR_STEPS[0]!;
   const isLast = stepIndex >= TOUR_STEPS.length - 1;
 
   const closeTour = useCallback(() => {
+    window.dispatchEvent(new Event(MOBILE_DECK_CLOSE_EVENT));
     persistTourCompleted();
-    setDismissed(true);
   }, []);
 
   const goNext = useCallback(() => {
@@ -153,54 +225,71 @@ export function GuidedTour({ active }: GuidedTourProps) {
     setStepIndex((current) => current + 1);
   }, [closeTour, isLast]);
 
+  useEffect(() => {
+    tourUiActive = true;
+    window.dispatchEvent(new Event(TOUR_EVENT));
+    return () => {
+      tourUiActive = false;
+      window.dispatchEvent(new Event(TOUR_EVENT));
+    };
+  }, []);
+
+  useFocusTrap({
+    active: true,
+    containerRef: dialogRef,
+    onEscape: closeTour,
+    initialFocusRef: nextButtonRef,
+  });
+
   useLayoutEffect(() => {
-    if (!open) {
-      return;
-    }
+    syncMobileDeckForStep(step);
 
     let frame = 0;
+    let attempts = 0;
+    let cancelled = false;
+    const maxAttempts = step.requiresMobileDeck ? 45 : 12;
+
     const update = () => {
+      if (cancelled) {
+        return;
+      }
       frame = 0;
-      setRect(readHighlightRect(step.selector));
+      const target = document.querySelector(step.selector);
+      if (target instanceof HTMLElement) {
+        target.scrollIntoView({ block: "nearest", inline: "nearest" });
+      }
+      const next = readHighlightRect(step.selector);
+      if (!next && attempts < maxAttempts) {
+        attempts += 1;
+        frame = window.requestAnimationFrame(update);
+        return;
+      }
+      setRect(next);
     };
+
     const schedule = () => {
-      if (frame !== 0) {
+      if (frame !== 0 || cancelled) {
         return;
       }
       frame = window.requestAnimationFrame(update);
     };
 
-    schedule();
+    // Give the mobile drawer spring a beat before measuring deck targets.
+    const delayMs = step.requiresMobileDeck ? 280 : 0;
+    const delayId = window.setTimeout(schedule, delayMs);
+
     window.addEventListener("resize", schedule);
     window.addEventListener("scroll", schedule, true);
     return () => {
+      cancelled = true;
+      window.clearTimeout(delayId);
       if (frame !== 0) {
         window.cancelAnimationFrame(frame);
       }
       window.removeEventListener("resize", schedule);
       window.removeEventListener("scroll", schedule, true);
     };
-  }, [open, step.selector, stepIndex]);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closeTour();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [open, closeTour]);
-
-  if (!open) {
-    return null;
-  }
+  }, [step, stepIndex]);
 
   const tooltipStyle = (() => {
     if (!rect) {
@@ -220,7 +309,11 @@ export function GuidedTour({ active }: GuidedTourProps) {
   })();
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-[80]" aria-live="polite">
+    <div
+      className="pointer-events-none fixed inset-0 z-[80]"
+      aria-live="polite"
+      data-aura-tour=""
+    >
       {rect ? (
         <div
           aria-hidden
@@ -238,6 +331,7 @@ export function GuidedTour({ active }: GuidedTourProps) {
       )}
 
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -273,7 +367,12 @@ export function GuidedTour({ active }: GuidedTourProps) {
           >
             {t("tour.skip")}
           </Button>
-          <Button type="button" size="sm" onClick={goNext}>
+          <Button
+            ref={nextButtonRef}
+            type="button"
+            size="sm"
+            onClick={goNext}
+          >
             {isLast ? t("tour.done") : t("tour.next")}
           </Button>
         </div>

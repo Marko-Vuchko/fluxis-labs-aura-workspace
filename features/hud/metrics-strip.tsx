@@ -62,6 +62,7 @@ function buildStripMetrics(
   month: MonthSnapshot,
   risk: RiskSnapshot | null,
   currency: string,
+  labels: { p10: string; p90: string; profitable: string },
 ): readonly StripMetric[] {
   const metrics: StripMetric[] = [
     {
@@ -69,20 +70,30 @@ function buildStripMetrics(
       labelKey: "ui.revenue",
       value: month.revenue[1],
       format: (value) => formatCompact(value),
-      tooltip: formatRangeTooltip(month.revenue[1], currency, {
-        p10: month.revenue[0],
-        p90: month.revenue[2],
-      }),
+      tooltip: formatRangeTooltip(
+        month.revenue[1],
+        currency,
+        {
+          p10: month.revenue[0],
+          p90: month.revenue[2],
+        },
+        { p10: labels.p10, p90: labels.p90 },
+      ),
     },
     {
       id: "profit",
       labelKey: "ui.profit",
       value: month.profit[1],
       format: (value) => formatCompact(value),
-      tooltip: formatRangeTooltip(month.profit[1], currency, {
-        p10: month.profit[0],
-        p90: month.profit[2],
-      }),
+      tooltip: formatRangeTooltip(
+        month.profit[1],
+        currency,
+        {
+          p10: month.profit[0],
+          p90: month.profit[2],
+        },
+        { p10: labels.p10, p90: labels.p90 },
+      ),
     },
     {
       id: "margin",
@@ -103,10 +114,10 @@ function buildStripMetrics(
       labelKey: "ui.runway",
       value: month.runway_months ?? Number.POSITIVE_INFINITY,
       format: (value) =>
-        Number.isFinite(value) ? value.toFixed(1) : "PROFITABLE",
+        Number.isFinite(value) ? value.toFixed(1) : labels.profitable,
       tooltip:
         month.runway_months === null
-          ? "PROFITABLE"
+          ? labels.profitable
           : formatNumberFallback(month.runway_months),
     },
   ];
@@ -202,12 +213,18 @@ export function MetricsStrip({
         label={t("ui.revenue")}
         className={cn("w-full px-3 py-2", className)}
       >
-        <p className="font-mono text-xs text-muted-foreground">-</p>
+        <p className="font-mono text-xs tracking-[0.08em] text-muted-foreground">
+          {t("ui.awaitingSimulation")}
+        </p>
       </HudPanel>
     );
   }
 
-  const metrics = buildStripMetrics(month, risk, currency);
+  const metrics = buildStripMetrics(month, risk, currency, {
+    p10: t("ui.p10"),
+    p90: t("ui.p90"),
+    profitable: t("ui.profitable"),
+  });
 
   return (
     <TooltipProvider delay={120}>

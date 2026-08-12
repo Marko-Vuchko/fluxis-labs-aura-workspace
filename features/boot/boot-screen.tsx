@@ -5,8 +5,12 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/lib/i18n/language-provider";
+import { localizeApiError } from "@/lib/i18n/api-errors";
 import { cn } from "@/lib/utils";
-import type { BootAttemptTelemetry } from "@/features/simulation/use-simulation";
+import type {
+  BootAttemptTelemetry,
+  SimulationError,
+} from "@/features/simulation/use-simulation";
 import type {
   HealthResponse,
   SimulationStatus,
@@ -18,7 +22,7 @@ import { playBootSequence } from "@/lib/audio/soundscape";
 
 export type BootScreenProps = {
   status: SimulationStatus;
-  error: string | null;
+  error: SimulationError | null;
   bootAttempt: number;
   bootAttempts: readonly BootAttemptTelemetry[];
   health: HealthResponse | null;
@@ -53,7 +57,7 @@ export function BootScreen({
   onRetry,
   onEnter,
 }: BootScreenProps) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const reduceMotion = useReducedMotion();
   const logEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -69,6 +73,7 @@ export function BootScreen({
       engineVersion: t("boot.engineVersion"),
       numpyWarmup: t("boot.numpyWarmup"),
       firstSimReady: t("boot.firstSimReady"),
+      unreachable: t("boot.unreachable"),
     },
   );
 
@@ -197,7 +202,9 @@ export function BootScreen({
         </div>
 
         {error && canRetry ? (
-          <p className="font-mono text-xs text-status-critical">{error}</p>
+          <p className="font-mono text-xs text-status-critical">
+            {localizeApiError(locale, error)}
+          </p>
         ) : null}
 
         <div className="flex flex-wrap items-center gap-3">

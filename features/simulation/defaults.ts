@@ -3,20 +3,30 @@ import type { SimulationInput, SimulationMeta } from "./types";
 /** Engine fixed seed from PRD 5.1 - default when the client omits seed. */
 export const FIXED_SEED = 20260810;
 
-/** Transparent capacity economics shown in the Control Deck (PRD FR-2). */
+/**
+ * Boot-only fallbacks while meta is unavailable (pre-first simulate).
+ * After the first engine response, Control Deck reads these from meta only.
+ */
 export const CLIENTS_PER_HEAD = 12;
 export const COST_PER_HEAD = 2_500;
 
 /**
- * Prefer meta values when the engine sends them; otherwise PRD 5.1 locals.
+ * Capacity economics for transparent Control Deck labels (PRD FR-2).
+ * Prefer engine meta; local constants exist only for the boot gap.
  */
 export function resolveCapacityEconomics(meta?: SimulationMeta | null): {
   clientsPerHead: number;
   costPerHead: number;
 } {
+  if (meta) {
+    return {
+      clientsPerHead: meta.clients_per_head,
+      costPerHead: meta.cost_per_head,
+    };
+  }
   return {
-    clientsPerHead: meta?.clients_per_head ?? CLIENTS_PER_HEAD,
-    costPerHead: meta?.cost_per_head ?? COST_PER_HEAD,
+    clientsPerHead: CLIENTS_PER_HEAD,
+    costPerHead: COST_PER_HEAD,
   };
 }
 

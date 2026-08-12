@@ -17,7 +17,11 @@ import {
 } from "./defaults";
 import type { PresetId } from "./presets";
 import { getPreset } from "./presets";
+import type { ApiErrorCode } from "@/lib/i18n/api-errors";
+import { parseShareQuery, replaceShareQuery } from "@/lib/share/query";
+import { SEED_MAX } from "@/lib/simulation/contract";
 import type {
+  ApiFailure,
   HealthResponse,
   SimulationInput,
   SimulationOutput,
@@ -25,7 +29,28 @@ import type {
   SimulationStatus,
 } from "./types";
 
+export type SimulationError = {
+  error: ApiErrorCode;
+  status?: number;
+};
+
 const DEBOUNCE_MS = 120;
+const RETRY_BASE_MS = 1_000;
+const RETRY_MAX_MS = 15_000;
+
+function isNonRetryableFailure(failure: ApiFailure): boolean {
+  if (failure.error === "invalid_simulate") {
+    return true;
+  }
+  const status = failure.status;
+  if (status === undefined) {
+    return false;
+  }
+  if (status >= 400 && status < 500 && status !== 408 && status !== 429) {
+    return true;
+  }
+  return false;
+}
 
 export type BootAttemptTelemetry = {
   attempt: number;
@@ -39,7 +64,7 @@ export type UseSimulationReturn = {
   result: SimulationOutput | null;
   health: HealthResponse | null;
   status: SimulationStatus;
-  error: string | null;
+  error: SimulationError | null;
   bootAttempt: number;
   bootAttempts: readonly BootAttemptTelemetry[];
   setParam: (key: SimulationParamKey, value: number) => void;
@@ -54,6 +79,8 @@ export type UseSimulationReturn = {
   reseed: () => void;
   resetSeed: () => void;
   retryBoot: () => void;
+  /** Write sliders + month + seed to the URL. Call on commit, never while dragging. */
+  syncShareUrl: () => void;
 };
 
 function clampMonth(month: number): number {
@@ -70,7 +97,7 @@ export function useSimulation(): UseSimulationReturn {
   const [result, setResult] = useState<SimulationOutput | null>(null);
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [status, setStatus] = useState<SimulationStatus>("booting");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<SimulationError | null>(null);
   const [bootAttempt, setBootAttempt] = useState(0);
   const [bootAttempts, setBootAttempts] = useState<BootAttemptTelemetry[]>(
     [],
@@ -78,6 +105,7 @@ export function useSimulation(): UseSimulationReturn {
   const [, startTransition] = useTransition();
 
   const paramsRef = useRef(params);
+  const selectedMonthRef = useRef(selectedMonth);
   const resultRef = useRef(result);
   const statusRef = useRef(status);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -85,10 +113,17 @@ export function useSimulation(): UseSimulationReturn {
   const bootControllerRef = useRef<AbortController | null>(null);
   const requestSerialRef = useRef(0);
   const mountedRef = useRef(true);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryDelayRef = useRef(RETRY_BASE_MS);
+  const runSimulateRef = useRef<() => Promise<void>>(async () => {});
 
   useEffect(() => {
     paramsRef.current = params;
   }, [params]);
+
+  useEffect(() => {
+    selectedMonthRef.current = selectedMonth;
+  }, [selectedMonth]);
 
   useEffect(() => {
     resultRef.current = result;
@@ -105,8 +140,31 @@ export function useSimulation(): UseSimulationReturn {
     }
   }, []);
 
+  const clearRetryTimer = useCallback(() => {
+    if (retryTimerRef.current !== null) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleStaleRetry = useCallback(() => {
+    clearRetryTimer();
+    const delay = retryDelayRef.current;
+    retryTimerRef.current = setTimeout(() => {
+      retryTimerRef.current = null;
+      if (!mountedRef.current) {
+        return;
+      }
+      if (statusRef.current === "stale") {
+        void runSimulateRef.current();
+      }
+    }, delay);
+    retryDelayRef.current = Math.min(delay * 2, RETRY_MAX_MS);
+  }, [clearRetryTimer]);
+
   const runSimulate = useCallback(async () => {
     clearDebounce();
+    clearRetryTimer();
 
     requestControllerRef.current?.abort();
     const controller = new AbortController();
@@ -127,6 +185,7 @@ export function useSimulation(): UseSimulationReturn {
     }
 
     if (response.ok) {
+      retryDelayRef.current = RETRY_BASE_MS;
       startTransition(() => {
         setResult(response.data);
         setStatus("ready");
@@ -135,13 +194,24 @@ export function useSimulation(): UseSimulationReturn {
       return;
     }
 
-    if (response.error === "Request aborted") {
+    if (response.error === "aborted") {
       return;
     }
 
-    setError(response.error);
-    setStatus(resultRef.current ? "stale" : "error");
-  }, [clearDebounce]);
+    setError({
+      error: response.error,
+      status: response.status,
+    });
+    const nextStatus = resultRef.current ? "stale" : "error";
+    setStatus(nextStatus);
+    if (nextStatus === "stale" && !isNonRetryableFailure(response)) {
+      scheduleStaleRetry();
+    }
+  }, [clearDebounce, clearRetryTimer, scheduleStaleRetry]);
+
+  useEffect(() => {
+    runSimulateRef.current = runSimulate;
+  }, [runSimulate]);
 
   const queueSimulate = useCallback(() => {
     clearDebounce();
@@ -151,10 +221,19 @@ export function useSimulation(): UseSimulationReturn {
     }, DEBOUNCE_MS);
   }, [clearDebounce, runSimulate]);
 
+  const syncShareUrl = useCallback(() => {
+    replaceShareQuery({
+      params: paramsRef.current,
+      month: selectedMonthRef.current,
+    });
+  }, []);
+
   const commitSimulate = useCallback(() => {
     clearDebounce();
+    retryDelayRef.current = RETRY_BASE_MS;
+    syncShareUrl();
     void runSimulate();
-  }, [clearDebounce, runSimulate]);
+  }, [clearDebounce, runSimulate, syncShareUrl]);
 
   const boot = useCallback(async () => {
     // Yield so the mount effect does not call setState synchronously.
@@ -163,9 +242,17 @@ export function useSimulation(): UseSimulationReturn {
       return;
     }
 
+    const shared = parseShareQuery(window.location.search);
+    paramsRef.current = shared.params;
+    selectedMonthRef.current = shared.month;
+    setParamsState(shared.params);
+    setSelectedMonthState(shared.month);
+
     bootControllerRef.current?.abort();
     requestControllerRef.current?.abort();
     clearDebounce();
+    clearRetryTimer();
+    retryDelayRef.current = RETRY_BASE_MS;
 
     const controller = new AbortController();
     bootControllerRef.current = controller;
@@ -195,14 +282,17 @@ export function useSimulation(): UseSimulationReturn {
     }
 
     if (!healthResult.ok) {
-      setError(healthResult.error);
+      setError({
+        error: healthResult.error,
+        status: healthResult.status,
+      });
       setStatus(resultRef.current ? "stale" : "error");
       return;
     }
 
     setHealth(healthResult.data);
     await runSimulate();
-  }, [clearDebounce, runSimulate]);
+  }, [clearDebounce, clearRetryTimer, runSimulate]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -211,6 +301,7 @@ export function useSimulation(): UseSimulationReturn {
     return () => {
       mountedRef.current = false;
       clearDebounce();
+      clearRetryTimer();
       bootControllerRef.current?.abort();
       requestControllerRef.current?.abort();
     };
@@ -239,7 +330,9 @@ export function useSimulation(): UseSimulationReturn {
   );
 
   const setSelectedMonth = useCallback((month: number) => {
-    setSelectedMonthState(clampMonth(month));
+    const next = clampMonth(month);
+    selectedMonthRef.current = next;
+    setSelectedMonthState(next);
   }, []);
 
   /**
@@ -254,7 +347,7 @@ export function useSimulation(): UseSimulationReturn {
   }, []);
 
   const reseed = useCallback(() => {
-    const seed = Math.floor(Math.random() * 2_147_483_647);
+    const seed = Math.floor(Math.random() * SEED_MAX);
     const merged = { ...paramsRef.current, seed };
     paramsRef.current = merged;
     setParamsState(merged);
@@ -290,6 +383,7 @@ export function useSimulation(): UseSimulationReturn {
     reseed,
     resetSeed,
     retryBoot,
+    syncShareUrl,
   };
 }
 

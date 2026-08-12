@@ -1,10 +1,27 @@
 # Aura Workspace
 
+[![CI](https://github.com/Marko-Vuchko/fluxis-labs-aura-workspace/actions/workflows/ci.yml/badge.svg)](https://github.com/Marko-Vuchko/fluxis-labs-aura-workspace/actions/workflows/ci.yml)
+
 Spatial Business Simulator by Fluxis Labs. A 3D command center where every slider change asks a Python Monte Carlo engine for a fresh 12-month SaaS projection, then redraws seven glowing nodes from those server-side results alone.
 
 **Product:** Aura Workspace - Spatial Business Simulator  
 **Agency:** [Fluxis Labs](https://github.com/Marko-Vuchko)  
-**Repo:** [Marko-Vuchko/fluxis-labs-aura-workspace](https://github.com/Marko-Vuchko/fluxis-labs-aura-workspace)
+**Repo:** [Marko-Vuchko/fluxis-labs-aura-workspace](https://github.com/Marko-Vuchko/fluxis-labs-aura-workspace)  
+**Live:** [fluxis-labs-aura-workspace.vercel.app](https://fluxis-labs-aura-workspace.vercel.app)
+
+## Screenshots
+
+Desktop command center at 1440px - HUD, Control Deck, and the seven-node scene:
+
+![Aura Workspace desktop HUD at 1440px](docs/responsive-evidence/aura-responsive-1440.png)
+
+Mobile Control Deck drawer at 390px:
+
+![Aura Workspace mobile drawer at 390px](docs/responsive-evidence/aura-responsive-390-drawer.png)
+
+Boot screen waiting on the Python engine:
+
+![Aura Workspace boot screen](docs/evidence/boot-enter-aura-backend-on.png)
 
 ## Architecture
 
@@ -100,15 +117,23 @@ Owner-only runbooks (do not deploy from an agent session):
 
 ## Portfolio layer
 
-- `/about` - static case study (architecture SVG, Monte Carlo explanation, challenges, GitHub link)
+- `/about` - static case study (architecture SVG, Monte Carlo explanation, challenges, GitHub repo + profile)
+- Shareable URL - committing sliders writes `?ad=&price=&team=&opex=&cash=&m=&seed=` so a LinkedIn demo can open Overload Crisis from a pasted link
 - Fluxis Labs URL lives in `lib/site-config.ts` as `FLUXIS_LABS_URL`. Leave it empty to hide the link; set one string when the site is live.
 - Open Graph image is generated in code at `app/opengraph-image.tsx` (also used for the Twitter large card).
+- Press `?` after ENTER AURA for a HUD card of keyboard shortcuts (sliders, Escape, tour).
+
+## Accessibility
+
+- Skip link to `#aura-controls`, landmark regions, focus trap on tour / mobile deck / node detail, live status for COMPUTING and LINK LOST / STALE.
+- The 3D scene is pointer-first; keyboard users use the HUD and the 2D WebGL fallback. See PRD §8.3 and FR-10.
 
 ## Quality gates
 
 ```powershell
 npx tsc --noEmit
 npm run lint
+npm test
 npm run build
 ```
 

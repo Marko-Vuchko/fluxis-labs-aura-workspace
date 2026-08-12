@@ -4,10 +4,15 @@ export function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const isDev = process.env.NODE_ENV === "development";
 
+  // Dev overlay injects un-nonced <style> tags. A style-src nonce would
+  // ignore 'unsafe-inline' (CSP3), so development drops the nonce.
+  // Production keeps a nonce on <style> / stylesheets. R3F and React set
+  // canvas/layout style attributes, which CSP3 allows via style-src-attr.
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""};
-    style-src 'self' 'nonce-${nonce}';
+    style-src ${isDev ? `'self' 'unsafe-inline'` : `'self' 'nonce-${nonce}'`};
+    style-src-attr 'unsafe-inline';
     img-src 'self' blob: data:;
     font-src 'self';
     connect-src 'self';
@@ -44,6 +49,7 @@ export function proxy(request: NextRequest) {
     "max-age=63072000; includeSubDomains; preload",
   );
   response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("X-Frame-Options", "DENY");
   response.headers.set(
     "Referrer-Policy",
     "strict-origin-when-cross-origin",

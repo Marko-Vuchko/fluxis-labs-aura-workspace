@@ -1,9 +1,9 @@
 /**
  * Public site URLs and portfolio copy anchors.
- * Change Fluxis Labs URL in one place - an empty string hides that link everywhere.
+ * Change Fluxis Labs URL in one place - an empty string falls back to GitHub for CTAs.
  */
 
-/** Agency site. Leave empty until the URL is known (no dead links). */
+/** Agency site. Leave empty until the URL is known (CTA falls back to GitHub). */
 export const FLUXIS_LABS_URL = "";
 
 export const GITHUB_PROFILE_URL = "https://github.com/Marko-Vuchko";
@@ -32,4 +32,19 @@ export const SITE_URL = (
 export function getFluxisLabsUrl(): string | null {
   const url = FLUXIS_LABS_URL.trim();
   return url.length > 0 ? url : null;
+}
+
+/**
+ * Contact CTA target: Fluxis Labs when set, otherwise GitHub profile so the
+ * portfolio story never loses a contact path.
+ */
+export function getContactCta(): {
+  url: string;
+  kind: "fluxis" | "github";
+} {
+  const fluxis = getFluxisLabsUrl();
+  if (fluxis) {
+    return { url: fluxis, kind: "fluxis" };
+  }
+  return { url: GITHUB_PROFILE_URL, kind: "github" };
 }
