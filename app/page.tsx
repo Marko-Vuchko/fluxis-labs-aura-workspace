@@ -1,5 +1,7 @@
 "use client";
 
+import dynamic from "next/dynamic";
+import { useReducedMotion } from "motion/react";
 import { useState } from "react";
 
 import { BootScreen } from "@/features/boot/boot-screen";
@@ -14,9 +16,16 @@ import { SoundToggle } from "@/features/hud/sound-toggle";
 import { StatusBadge } from "@/features/hud/status-badge";
 import { useSimulation } from "@/features/simulation/use-simulation";
 
+const SpatialCanvas = dynamic(
+  () =>
+    import("@/features/scene/spatial-canvas").then((mod) => mod.SpatialCanvas),
+  { ssr: false },
+);
+
 export default function AuraWorkspacePage() {
   const simulation = useSimulation();
   const [hasEnteredAura, setHasEnteredAura] = useState(false);
+  const reduceMotion = useReducedMotion() ?? false;
 
   const firstSimReady = simulation.result !== null;
 
@@ -43,17 +52,21 @@ export default function AuraWorkspacePage() {
     ) ?? null;
   const stale = simulation.status === "stale";
   const currency = simulation.result?.meta.currency ?? "USD";
+  const nodes = month?.nodes ?? null;
 
   return (
     <main className="relative min-h-dvh w-full overflow-x-hidden bg-background text-foreground">
-      {/* Scene placeholder - filled in a later phase */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgb(34_211_238_/_0.07),transparent_55%),radial-gradient(ellipse_at_top,rgb(168_85_247_/_0.06),transparent_40%)]"
-      />
+      <div className="absolute inset-0 z-0">
+        <SpatialCanvas
+          nodes={nodes}
+          month={month}
+          reduceMotion={reduceMotion}
+          className="h-full w-full"
+        />
+      </div>
 
-      <div className="relative z-10 flex min-h-dvh flex-col">
-        <header className="flex items-start justify-between gap-3 px-4 pt-4 sm:px-6">
+      <div className="pointer-events-none relative z-10 flex min-h-dvh flex-col">
+        <header className="pointer-events-auto flex items-start justify-between gap-3 px-4 pt-4 sm:px-6">
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={simulation.status} />
             <ComputeBadge meta={simulation.result?.meta} />
@@ -65,7 +78,7 @@ export default function AuraWorkspacePage() {
         </header>
 
         <div className="grid flex-1 grid-cols-1 gap-4 px-4 py-4 lg:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)] lg:gap-6 lg:px-6 lg:pb-6">
-          <aside className="min-w-0 lg:self-start">
+          <aside className="pointer-events-auto min-w-0 lg:self-start">
             <ControlDeck
               params={simulation.params}
               meta={simulation.result?.meta}
@@ -79,15 +92,15 @@ export default function AuraWorkspacePage() {
           </aside>
 
           <section className="flex min-w-0 flex-col gap-4">
-            <div className="ml-auto flex w-full max-w-md flex-col gap-3 lg:max-w-sm">
+            <div className="pointer-events-auto ml-auto flex w-full max-w-md flex-col gap-3 lg:max-w-sm">
               <KpiPanel month={month} currency={currency} stale={stale} />
               <RiskGauge risk={month?.risk ?? null} stale={stale} />
             </div>
 
-            {/* Scene placeholder - filled in a later phase */}
+            {/* Open orbit / hover target through the HUD stack */}
             <div className="min-h-24 flex-1" aria-hidden />
 
-            <div className="mx-auto w-full max-w-2xl space-y-4">
+            <div className="pointer-events-auto mx-auto w-full max-w-2xl space-y-4">
               <AiCopilot
                 insights={simulation.result?.insights ?? null}
                 sensitivity={simulation.result?.sensitivity}
