@@ -1,0 +1,444 @@
+const en = {
+  brand: {
+    name: "Aura Workspace",
+    tagline: "Spatial Business Simulator",
+    builtBy: "Built by Fluxis Labs",
+  },
+  ui: {
+    adSpend: "Ad Spend",
+    price: "Price",
+    teamSize: "Team Size",
+    opex: "OpEx",
+    cashReserve: "Cash Reserve",
+    seed: "Seed",
+    reseed: "RESEED",
+    resetSeed: "Reset seed",
+    clientsPerHead: "Clients per head",
+    costPerHead: "Cost per head",
+    month: "Month",
+    revenue: "Revenue",
+    profit: "Profit",
+    margin: "Margin",
+    endingCash: "Ending cash",
+    customers: "Customers",
+    churnRate: "Churn rate",
+    capacityUsed: "Capacity used",
+    cash: "Cash",
+    runway: "Runway",
+    profitable: "PROFITABLE",
+    risk: "Risk",
+    riskLoss: "Loss probability",
+    riskOverload: "Team overload",
+    riskVolatility: "Profit volatility",
+    riskAdDependency: "Ad dependency",
+    annualHistogram: "Annual profit distribution",
+    sensitivity: "Sensitivity",
+    iterations: "Iterations",
+    computeMs: "Compute",
+    computing: "COMPUTING",
+    linkLost: "LINK LOST",
+    stale: "STALE",
+    language: "Language",
+    english: "English",
+    serbian: "Serbian",
+    soundOn: "Sound on",
+    soundOff: "Sound off",
+    enterAura: "ENTER AURA",
+    retry: "Retry",
+    controlDeck: "Control Deck",
+    copilot: "AI Strategic Copilot",
+    presets: {
+      bootstrap: "Bootstrap",
+      growth_push: "Growth Push",
+      overload_crisis: "Overload Crisis",
+      optimized: "Optimized",
+    },
+    nodes: {
+      marketing: "Marketing",
+      sales: "Sales",
+      support: "Support",
+      operations: "Operations",
+      profit: "Profit",
+      churn: "Churn",
+      cash_runway: "Cash Runway",
+    },
+    status: {
+      booting: "Booting",
+      ready: "Ready",
+      simulating: "Simulating",
+      stale: "Stale",
+      error: "Error",
+    },
+  },
+  boot: {
+    title: "Booting Aura Engine & Synchronizing Python Neural Nodes...",
+    attempt: "Connection attempt {attempt}",
+    responseMs: "Response time {ms} ms",
+    engineVersion: "Engine version {version}",
+    numpyWarmup: "NumPy warmup {ms} ms",
+    firstSimReady: "First simulation payload received",
+    waiting: "Waiting for engine wake...",
+    failed: "Engine did not respond. You can retry.",
+    ready: "Engine online. Press ENTER AURA to continue.",
+  },
+  insights: {
+    CAP_BREACH:
+      "Team capacity is breached by {overload_pct}% in month {month}. Demand already exceeds what the current headcount can serve.",
+    CAP_NEAR_LIMIT:
+      "Capacity utilization reaches {capacity_pct}% in month {month}. The team is close to saturation.",
+    CAP_UNDERUSED:
+      "Capacity utilization sits at {capacity_pct}%. Headcount is underused relative to demand.",
+    CAP_HIRE_SUGGESTED:
+      "Hiring about {hires} people would relieve the bottleneck forming around month {month}.",
+    CAP_CHURN_FROM_OVERLOAD:
+      "Overload of {overload_pct}% is elevating churn to {churn_pct}%. Service strain is leaking customers.",
+    PRICE_ABOVE_REFERENCE:
+      "Price at {price} sits above the reference of {reference}. Conversion pressure is building.",
+    PRICE_BELOW_REFERENCE:
+      "Price at {price} sits below the reference of {reference}. Volume is easier, margin is thinner.",
+    PRICE_CONVERSION_DROP:
+      "At {price}, conversion is about {conv} versus an expected {expected_conv} at the reference price point.",
+    PRICE_MARGIN_THIN:
+      "Contribution margin is thin at {margin}. Small cost swings can erase profit.",
+    PRICE_STRONGEST_LEVER:
+      "Price is the strongest lever in this run (sensitivity {coefficient}). Directional moves here move profit the most.",
+    MKT_SATURATION:
+      "Ad spend near {ad_spend} is hitting diminishing reach ({reach_pct}%). Extra spend buys less incremental demand.",
+    MKT_EFFICIENT:
+      "Ad spend around {ad_spend} is still in an efficient range before heavy saturation.",
+    MKT_DEPENDENCY_HIGH:
+      "Advertising accounts for {dependency_pct}% of total cost. Revenue is tightly coupled to paid acquisition.",
+    MKT_UNDERSPEND:
+      "Ad spend at {ad_spend} leaves clear headroom before saturation. Demand is likely under-stimulated.",
+    MKT_CAC_ABOVE_LTV:
+      "CAC at {cac} exceeds LTV at {ltv}. Paid growth is destroying unit economics.",
+    CASH_RUNWAY_CRITICAL:
+      "Cash runway is critical at {runway_months} months. Liquidity risk is immediate.",
+    CASH_RUNWAY_WARNING:
+      "Cash runway is short at {runway_months} months. Watch burn before the next planning cycle.",
+    CASH_PROFITABLE:
+      "The firm is cash-flow positive in the selected month. Runway is reported as PROFITABLE.",
+    CASH_BURN_RISING:
+      "Monthly burn is rising toward {burn}. Reserve coverage is being consumed faster.",
+    CASH_LOSS_PROBABILITY:
+      "Probability of a monthly loss is {loss_probability}. Downside scenarios remain material.",
+    REC_TOP_LEVER:
+      "Primary recommendation: adjust {param} first. It ranks as the top sensitivity lever ({coefficient}).",
+    REC_SECOND_LEVER:
+      "Secondary recommendation: review {param} next. It is the second sensitivity lever ({coefficient}).",
+  },
+  tour: {
+    skip: "Skip tour",
+    next: "Next",
+    done: "Done",
+    step1Title: "Spatial scene",
+    step1Body:
+      "Seven glowing nodes show operational health. Position and color come from the Python simulation, not from the browser.",
+    step2Title: "Control Deck",
+    step2Body:
+      "Drag the five sliders to reshape the business. Every change asks the engine for a fresh Monte Carlo run.",
+    step3Title: "Strategic Copilot",
+    step3Body:
+      "Three ranked insights explain what the numbers imply. Codes are translated locally so EN and SR stay numerically identical.",
+    step4Title: "Presets",
+    step4Body:
+      "Jump into Bootstrap, Growth Push, Overload Crisis, or Optimized to stage a client-ready story in one click.",
+  },
+  about: {
+    title: "About Aura Workspace",
+    subtitle: "A portfolio-grade spatial business simulator by Fluxis Labs.",
+    architectureHeading: "Architecture",
+    architectureBody:
+      "The browser never talks to the simulation host directly. Every request passes through Vercel route handlers that validate input and output, keep secrets server-side, and forward work to a Python FastAPI engine running Monte Carlo math with NumPy and Pandas.",
+    monteCarloHeading: "Monte Carlo model",
+    monteCarloBody:
+      "Each slider change runs 1000 iterations across 12 months. The engine returns percentile bands, risk components, node coordinates, an annual profit histogram, sensitivity ranks, and three insight codes. The client renders those codes from a bilingual dictionary and never invents replacement figures when the link drops.",
+    challengesHeading: "Build challenges",
+    challengesBody:
+      "Cold starts on free compute, strict CSP with nonces, same-origin API fencing, and a hard rule that business math stays off the client. The scene must stay interactive while results refresh, and stale data must remain visible rather than fabricated.",
+    githubCta: "View GitHub profile",
+    fluxisPlaceholder: "Fluxis Labs site (URL placeholder)",
+  },
+  test: {
+    title: "Simulation harness (temporary)",
+    dragHint: "Drag a slider, then release. Debounced requests fire while dragging; a final request fires on release.",
+    languageHint: "Switch language to verify labels update without reload.",
+    lastRequest: "Last request status",
+    rawMonth: "Selected month raw figures",
+    rawAnnual: "Annual p50 figures",
+    rawInsights: "Insight codes",
+  },
+} as const;
+
+type StringTree<T> = {
+  [K in keyof T]: T[K] extends string
+    ? string
+    : T[K] extends Record<string, unknown>
+      ? StringTree<T[K]>
+      : never;
+};
+
+const sr = {
+  brand: {
+    name: "Aura Workspace",
+    tagline: "Prostorni poslovni simulator",
+    builtBy: "Izradila Fluxis Labs",
+  },
+  ui: {
+    adSpend: "Budzet za reklame",
+    price: "Cena",
+    teamSize: "Velicina tima",
+    opex: "Operativni troskovi",
+    cashReserve: "Gotovinska rezerva",
+    seed: "Seed",
+    reseed: "RESEED",
+    resetSeed: "Vrati seed",
+    clientsPerHead: "Klijenata po osobi",
+    costPerHead: "Trosak po osobi",
+    month: "Mesec",
+    revenue: "Prihod",
+    profit: "Profit",
+    margin: "Marza",
+    endingCash: "Zavrsna gotovina",
+    customers: "Klijenti",
+    churnRate: "Stopa odliva",
+    capacityUsed: "Iskoriscen kapacitet",
+    cash: "Gotovina",
+    runway: "Runway",
+    profitable: "PROFITABILNO",
+    risk: "Rizik",
+    riskLoss: "Verovatnoca gubitka",
+    riskOverload: "Preopterecenje tima",
+    riskVolatility: "Volatilnost profita",
+    riskAdDependency: "Zavisnost od reklame",
+    annualHistogram: "Raspodela godisnjeg profita",
+    sensitivity: "Osetljivost",
+    iterations: "Iteracije",
+    computeMs: "Racunanje",
+    computing: "RACUNANJE",
+    linkLost: "VEZA IZGUBLJENA",
+    stale: "ZASTARELO",
+    language: "Jezik",
+    english: "Engleski",
+    serbian: "Srpski",
+    soundOn: "Zvuk ukljucen",
+    soundOff: "Zvuk iskljucen",
+    enterAura: "UDJI U AURU",
+    retry: "Pokusaj ponovo",
+    controlDeck: "Kontrolna tabla",
+    copilot: "AI strateski kopilot",
+    presets: {
+      bootstrap: "Bootstrap",
+      growth_push: "Growth Push",
+      overload_crisis: "Overload Crisis",
+      optimized: "Optimized",
+    },
+    nodes: {
+      marketing: "Marketing",
+      sales: "Prodaja",
+      support: "Podrska",
+      operations: "Operacije",
+      profit: "Profit",
+      churn: "Odliv",
+      cash_runway: "Cash Runway",
+    },
+    status: {
+      booting: "Pokretanje",
+      ready: "Spremno",
+      simulating: "Simulacija",
+      stale: "Zastarelo",
+      error: "Greska",
+    },
+  },
+  boot: {
+    title: "Booting Aura Engine & Synchronizing Python Neural Nodes...",
+    attempt: "Pokusaj konekcije {attempt}",
+    responseMs: "Vreme odgovora {ms} ms",
+    engineVersion: "Verzija engine-a {version}",
+    numpyWarmup: "NumPy zagrevanje {ms} ms",
+    firstSimReady: "Prva simulacija je stigla",
+    waiting: "Cekam budenje engine-a...",
+    failed: "Engine nije odgovorio. Mozete pokusati ponovo.",
+    ready: "Engine je online. Pritisnite UDJI U AURU da nastavite.",
+  },
+  insights: {
+    CAP_BREACH:
+      "Kapacitet tima je probijen za {overload_pct}% u mesecu {month}. Traznja vec premasuje ono sto trenutni tim moze da opsluzi.",
+    CAP_NEAR_LIMIT:
+      "Iskoriscenje kapaciteta dize se na {capacity_pct}% u mesecu {month}. Tim je blizu saturacije.",
+    CAP_UNDERUSED:
+      "Iskoriscenje kapaciteta je na {capacity_pct}%. Tim je nedovoljno iskoriscen u odnosu na traznju.",
+    CAP_HIRE_SUGGESTED:
+      "Zaposljavanje oko {hires} osoba rasteretilo bi usko grlo koje se formira oko meseca {month}.",
+    CAP_CHURN_FROM_OVERLOAD:
+      "Preopterecenje od {overload_pct}% dize odliv na {churn_pct}%. Pritisak na servis gubi klijente.",
+    PRICE_ABOVE_REFERENCE:
+      "Cena {price} je iznad reference {reference}. Pritisak na konverziju raste.",
+    PRICE_BELOW_REFERENCE:
+      "Cena {price} je ispod reference {reference}. Volumen je laksi, marza tanja.",
+    PRICE_CONVERSION_DROP:
+      "Pri ceni {price}, konverzija je oko {conv} naspram ocekivanih {expected_conv} na referentnoj ceni.",
+    PRICE_MARGIN_THIN:
+      "Kontribuciona marza je tanka na {margin}. Mali skokovi troska mogu obrisati profit.",
+    PRICE_STRONGEST_LEVER:
+      "Cena je najjaca poluga u ovom prolazu (osetljivost {coefficient}). Pomeraji ovde najvise pomeraju profit.",
+    MKT_SATURATION:
+      "Budzet za reklame oko {ad_spend} udara u opadajuci prinos ({reach_pct}%). Dodatni spend kupuje manje nove traznje.",
+    MKT_EFFICIENT:
+      "Budzet za reklame oko {ad_spend} jos je u efikasnom opsegu pre jake saturacije.",
+    MKT_DEPENDENCY_HIGH:
+      "Reklame cine {dependency_pct}% ukupnog troska. Prihod je cvrsto vezan za placenu akviziciju.",
+    MKT_UNDERSPEND:
+      "Budzet za reklame od {ad_spend} ostavlja prostor pre saturacije. Traznja je verovatno podstimulisana.",
+    MKT_CAC_ABOVE_LTV:
+      "CAC od {cac} premasuje LTV od {ltv}. Placeni rast unistava jedinicnu ekonomiju.",
+    CASH_RUNWAY_CRITICAL:
+      "Cash runway je kritican na {runway_months} meseci. Rizik likvidnosti je neposredan.",
+    CASH_RUNWAY_WARNING:
+      "Cash runway je kratak na {runway_months} meseci. Pratite burn pre sledeceg plana.",
+    CASH_PROFITABLE:
+      "Firma je cash-flow pozitivna u izabranom mesecu. Runway se prikazuje kao PROFITABILNO.",
+    CASH_BURN_RISING:
+      "Mesecni burn raste ka {burn}. Rezerva se trosi brze.",
+    CASH_LOSS_PROBABILITY:
+      "Verovatnoca mesecnog gubitka je {loss_probability}. Negativni scenariji i dalje bitno uticu.",
+    REC_TOP_LEVER:
+      "Primarna preporuka: prvo podesite {param}. To je najjaca poluga osetljivosti ({coefficient}).",
+    REC_SECOND_LEVER:
+      "Sekundarna preporuka: zatim pregledajte {param}. To je druga poluga osetljivosti ({coefficient}).",
+  },
+  tour: {
+    skip: "Preskoci turu",
+    next: "Dalje",
+    done: "Gotovo",
+    step1Title: "Prostorna scena",
+    step1Body:
+      "Sedam svetlecih cvorova pokazuje operativno zdravlje. Polozaj i boja dolaze iz Python simulacije, ne iz browsera.",
+    step2Title: "Kontrolna tabla",
+    step2Body:
+      "Pomerajte pet slajdera da preoblikujete biznis. Svaka promena trazi od engine-a novi Monte Carlo prolaz.",
+    step3Title: "Strateski kopilot",
+    step3Body:
+      "Tri rangirana uvida objasnjavaju sta brojke znace. Kodovi se prevode lokalno, pa EN i SR ostaju brojcano identicni.",
+    step4Title: "Presetovi",
+    step4Body:
+      "Skocite na Bootstrap, Growth Push, Overload Crisis ili Optimized i za jedan klik postavite pricu spremnu za klijenta.",
+  },
+  about: {
+    title: "O Aura Workspace",
+    subtitle: "Portfolio prostorni poslovni simulator agencije Fluxis Labs.",
+    architectureHeading: "Arhitektura",
+    architectureBody:
+      "Browser nikada ne razgovara direktno sa hostom simulacije. Svaki zahtev prolazi kroz Vercel route handlere koji validiraju ulaz i izlaz, cuvaju tajne na serveru i prosledjuju posao Python FastAPI engine-u sa Monte Carlo matematikom preko NumPy i Pandas.",
+    monteCarloHeading: "Monte Carlo model",
+    monteCarloBody:
+      "Svaka promena slajdera pokrece 1000 iteracija kroz 12 meseci. Engine vraca percentilne opsege, komponente rizika, koordinate cvorova, histogram godisnjeg profita, rangove osetljivosti i tri insight koda. Klijent te kodove renderuje iz dvojezicnog recnika i nikada ne izmislja zamenske brojke kada veza padne.",
+    challengesHeading: "Izazovi izgradnje",
+    challengesBody:
+      "Cold start na besplatnom compute-u, strogi CSP sa nonce vrednostima, same-origin API ograda i tvrdo pravilo da poslovna matematika ostaje van klijenta. Scena mora da ostane interaktivna dok rezultati stizu, a zastareli podaci moraju da ostanu vidljivi umesto da se izmisle.",
+    githubCta: "Pogledaj GitHub profil",
+    fluxisPlaceholder: "Fluxis Labs sajt (URL placeholder)",
+  },
+  test: {
+    title: "Simulacioni harness (privremeno)",
+    dragHint:
+      "Prevucite slajder, zatim otpustite. Debounce zahtevi idu tokom prevlacenja; finalni zahtev ide na otpustanje.",
+    languageHint: "Promenite jezik da proverite da se labele menjaju bez reload-a.",
+    lastRequest: "Status poslednjeg zahteva",
+    rawMonth: "Sirove brojke izabranog meseca",
+    rawAnnual: "Godisnje p50 brojke",
+    rawInsights: "Insight kodovi",
+  },
+} as const satisfies StringTree<typeof en>;
+
+export const dictionary = {
+  en,
+  sr,
+} as const;
+
+export type Locale = keyof typeof dictionary;
+export type Dictionary = (typeof dictionary)[Locale];
+
+type Join<K, P> = K extends string
+  ? P extends string
+    ? `${K}.${P}`
+    : never
+  : never;
+
+type LeafPaths<T> = {
+  [K in keyof T & string]: T[K] extends string
+    ? K
+    : T[K] extends Record<string, unknown>
+      ? Join<K, LeafPaths<T[K]>>
+      : never;
+}[keyof T & string];
+
+export type DictionaryKey = LeafPaths<(typeof dictionary)["en"]>;
+
+export const LOCALES: readonly Locale[] = ["en", "sr"];
+export const DEFAULT_LOCALE: Locale = "en";
+export const LOCALE_STORAGE_KEY = "aura.locale";
+
+export function isLocale(value: string): value is Locale {
+  return value === "en" || value === "sr";
+}
+
+export function getDictionary(locale: Locale): Dictionary {
+  return dictionary[locale];
+}
+
+export function getMessage(
+  locale: Locale,
+  key: DictionaryKey,
+): string {
+  const parts = key.split(".");
+  let current: unknown = dictionary[locale];
+
+  for (const part of parts) {
+    if (
+      typeof current !== "object" ||
+      current === null ||
+      !(part in current)
+    ) {
+      return key;
+    }
+    current = (current as Record<string, unknown>)[part];
+  }
+
+  return typeof current === "string" ? current : key;
+}
+
+/**
+ * Text-only interpolation. Replaces {name} tokens from params.
+ * Never returns HTML.
+ */
+export function interpolate(
+  template: string,
+  params?: Readonly<Record<string, string | number>>,
+): string {
+  if (!params) {
+    return template;
+  }
+
+  return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, name: string) => {
+    const value = params[name];
+    if (value === undefined) {
+      return match;
+    }
+    return String(value);
+  });
+}
+
+export function translate(
+  locale: Locale,
+  key: DictionaryKey,
+  params?: Readonly<Record<string, string | number>>,
+): string {
+  return interpolate(getMessage(locale, key), params);
+}
+
+export type InsightDictionaryKey = `insights.${keyof typeof en.insights}`;
+
+export function isInsightKey(key: string): key is InsightDictionaryKey {
+  return key.startsWith("insights.") && key.slice("insights.".length) in en.insights;
+}
