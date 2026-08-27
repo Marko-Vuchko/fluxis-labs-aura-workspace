@@ -9,8 +9,13 @@ import {
 import { getServerEnv } from "@/lib/env";
 
 export const runtime = "nodejs";
-
-const UPSTREAM_TIMEOUT_MS = 10_000;
+/**
+ * Render Free cold start can take up to ~60 s. Aborting earlier makes the
+ * boot screen report false "health check failed" rows every ~10 s.
+ * Must stay below this route's maxDuration.
+ */
+export const maxDuration = 60;
+const UPSTREAM_TIMEOUT_MS = 50_000;
 /** Successful health payloads are short-lived; failures are never cached. */
 const HEALTH_CACHE_TTL_MS = 5_000;
 

@@ -18,6 +18,7 @@ import {
 } from "@/lib/simulation/contract";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const MAX_BODY_BYTES = 4 * 1024;
 const UPSTREAM_TIMEOUT_MS = 15_000;

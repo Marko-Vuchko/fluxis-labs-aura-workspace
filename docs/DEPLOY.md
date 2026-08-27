@@ -52,7 +52,7 @@ curl -sS https://aura-workspace-api.onrender.com/health
 
 Očekuj JSON telemetriju, ne HTML. `/api/simulate` bez `X-Aura-Key` mora da padne. Ne izlaži taj URL u frontend kod.
 
-Free instanca može da zaspi (cold start do ~60 s). To je očekivano; Boot Screen na frontendu to pokriva.
+Free instanca spava posle 15 min bez saobraćaja (cold start do ~60 s). Workflow `.github/workflows/keep-engine-awake.yml` pinguje `GET /health` svakih 5 min da instanca ostane budna. Ako ping kasni, Boot Screen i dalje čeka do 90 s, a Vercel `/api/health` drži upstream 50 s umesto da prekine na 10 s.
 
 ## 2. Vercel env varijable (frontend)
 
@@ -92,6 +92,7 @@ Ako bilo koji korak pogodi prave korisnike, vrati to pravilo na `--action log` i
 ## 4. Posle go-live checklista
 
 - [ ] `GET /health` na Renderu prolazi
+- [ ] GitHub Action `Keep engine awake` radi na `main` (Actions tab); posle merge-a ručno pokreni `workflow_dispatch` jednom
 - [ ] Vercel `/api/health` vraća isti backend status (ne 5xx posle cold starta)
 - [ ] Network tab na produkciji pokazuje CSP, HSTS, `X-Content-Type-Options: nosniff`, `X-Frame-Options` / `frame-ancestors`
 - [ ] U bundle-u nema `AURA_API_URL` ni `AURA_API_SECRET`

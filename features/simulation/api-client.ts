@@ -10,6 +10,8 @@ import type {
 import { parseSimulationOutput } from "@/lib/simulation/contract";
 
 const REQUEST_TIMEOUT_MS = 15_000;
+/** Must exceed app/api/health UPSTREAM_TIMEOUT_MS so the BFF can finish. */
+const HEALTH_ATTEMPT_TIMEOUT_MS = 55_000;
 const HEALTH_MAX_WAIT_MS = 90_000;
 const HEALTH_BASE_DELAY_MS = 1_000;
 const HEALTH_MAX_DELAY_MS = 8_000;
@@ -151,7 +153,7 @@ export async function getHealth(
 
     const { signal, cleanup } = mergeSignals(
       options?.signal,
-      options?.timeoutMs ?? REQUEST_TIMEOUT_MS,
+      options?.timeoutMs ?? HEALTH_ATTEMPT_TIMEOUT_MS,
     );
 
     const attemptStartedAt = Date.now();

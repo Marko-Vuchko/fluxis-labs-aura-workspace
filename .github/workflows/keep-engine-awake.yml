@@ -1,0 +1,36 @@
+# Render Free spins down after 15 minutes idle. Public-repo Actions minutes
+# are free, so this ping keeps the Python engine warm without a paid plan.
+name: Keep engine awake
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: keep-engine-awake
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    name: Ping Render health
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: GET /health
+        env:
+          ENGINE_HEALTH_URL: https://aura-workspace-api.onrender.com/health
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if curl -fsS --max-time 90 -H "Accept: application/json" "$ENGINE_HEALTH_URL"; then
+              echo
+              exit 0
+            fi
+            echo "health ping attempt ${attempt} failed" >&2
+            sleep 8
+          done
+          exit 1
